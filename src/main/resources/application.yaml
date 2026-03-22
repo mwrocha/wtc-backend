@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: wtc-backend
+  data:
+    mongodb:
+      uri: mongodb+srv://wtcadmin:20605280@wtc.khkq5ro.mongodb.net/wtcdb?retryWrites=true&w=majority&appName=WTC
+
+server:
+  port: 8080
+
+jwt:
+  secret: wtc_connecta_secret_key_minimo_256_bits_seguro
+  expiration: 86400000
