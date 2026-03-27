@@ -14,15 +14,15 @@ import java.util.List;
 @Service
 public class MessageService {
 
-    private final MessageRepository messageRepository;
-    private final UserRepository userRepository;
+    private final MessageRepository  messageRepository;
+    private final UserRepository     userRepository;
     private final FirebasePushService firebasePushService;
 
     public MessageService(MessageRepository messageRepository,
                           UserRepository userRepository,
                           FirebasePushService firebasePushService) {
-        this.messageRepository = messageRepository;
-        this.userRepository = userRepository;
+        this.messageRepository   = messageRepository;
+        this.userRepository      = userRepository;
         this.firebasePushService = firebasePushService;
     }
 
@@ -30,24 +30,18 @@ public class MessageService {
     public Message sendDirect(String senderId, String recipientId,
                               String title, String body) {
 
-        // Resolve o email do destinatário caso seja um ID MongoDB (sem "@")
-        // Garante que o conversationId seja sempre email_email
         String recipientEmail = recipientId;
         if (!recipientId.contains("@")) {
             recipientEmail = userRepository.findById(recipientId)
-                    .map(u -> u.getEmail())
-                    .orElse(recipientId);
+                    .map(u -> u.getEmail()).orElse(recipientId);
         }
 
-        // Resolve o email do remetente caso seja um ID MongoDB
         String senderEmail = senderId;
         if (!senderId.contains("@")) {
             senderEmail = userRepository.findById(senderId)
-                    .map(u -> u.getEmail())
-                    .orElse(senderId);
+                    .map(u -> u.getEmail()).orElse(senderId);
         }
 
-        // conversationId sempre consistente: menor email primeiro
         String conversationId = senderEmail.compareTo(recipientEmail) < 0
                 ? senderEmail + "_" + recipientEmail
                 : recipientEmail + "_" + senderEmail;
@@ -65,7 +59,6 @@ public class MessageService {
 
         Message saved = messageRepository.save(message);
 
-        // Push para o destinatário — variáveis effectively final para a lambda
         final String finalRecipientEmail = recipientEmail;
         final String finalSenderEmail    = senderEmail;
         final String finalConversationId = conversationId;
@@ -97,7 +90,7 @@ public class MessageService {
         return messageRepository.save(message);
     }
 
-    // ── Campanha ──────────────────────────────────────────────────────────────
+    // ── Campanha — disparo inicial ────────────────────────────────────────────
     public Message sendCampaignMessage(Campaign campaign, String recipientId) {
 
         Message message = Message.builder()
@@ -124,7 +117,62 @@ public class MessageService {
             }
         });
 
+        // Fallback por ID
+        userRepository.findById(recipientId).ifPresent(recipient -> {
+            if (recipient.getFcmToken() != null) {
+                firebasePushService.sendCampaignPush(
+                        recipient.getFcmToken(),
+                        campaign.getTitle(), campaign.getBody(),
+                        campaign.getUrl(), campaign.getId());
+            }
+        });
+
         return saved;
+    }
+
+    // ── Campanha — propagar edição para mensagens já enviadas ─────────────────
+    public int propagateCampaignUpdate(Campaign campaign) {
+        String conversationId = "campaign_" + campaign.getId();
+
+        List<Message> existingMessages = messageRepository
+                .findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        if (existingMessages.isEmpty()) return 0;
+
+        for (Message msg : existingMessages) {
+            msg.setTitle(campaign.getTitle());
+            msg.setBody(campaign.getBody());
+            msg.setUrl(campaign.getUrl());
+            msg.setActions(campaign.getActions());
+            messageRepository.save(msg);
+
+            // Push de atualização para cada destinatário
+            String recipientId = msg.getRecipientId();
+            if (recipientId != null) {
+                // Tenta por email
+                userRepository.findByEmail(recipientId).ifPresent(recipient -> {
+                    if (recipient.getFcmToken() != null) {
+                        firebasePushService.sendCampaignUpdatedPush(
+                                recipient.getFcmToken(),
+                                campaign.getTitle(),
+                                campaign.getBody(),
+                                campaign.getId());
+                    }
+                });
+                // Fallback por ID
+                userRepository.findById(recipientId).ifPresent(recipient -> {
+                    if (recipient.getFcmToken() != null) {
+                        firebasePushService.sendCampaignUpdatedPush(
+                                recipient.getFcmToken(),
+                                campaign.getTitle(),
+                                campaign.getBody(),
+                                campaign.getId());
+                    }
+                });
+            }
+        }
+
+        return existingMessages.size();
     }
 
     // ── Histórico de conversa ─────────────────────────────────────────────────

@@ -17,17 +17,14 @@ public record CampaignRequest(
 
         String url,
 
-        // Botões interativos — ex: [{"action":"btn1","title":"Inscrever-se"}]
         List<Message.ActionButton> actions,
-
-        // Mapa de URLs por botão — ex: {"btn1":"https://wtc.com/inscricao"}
         Map<String, String> actionUrls,
 
-        // Segmentação — pelo menos um dos três deve ser informado
+        // Segmentação
         List<String> targetTags,
         List<String> targetClientIds,
         String targetGroupId,
+        String targetDivisionId,   // ← novo
 
-        // null = disparo imediato, data futura = agendado
         LocalDateTime scheduledAt
 ) {}

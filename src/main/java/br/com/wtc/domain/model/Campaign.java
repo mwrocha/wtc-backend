@@ -19,6 +19,7 @@ public class Campaign {
     private List<String> targetTags;
     private List<String> targetClientIds;
     private String targetGroupId;
+    private String targetDivisionId;   // ← novo
     private String createdByUserId;
     private LocalDateTime scheduledAt;
     private LocalDateTime sentAt;
@@ -29,13 +30,15 @@ public class Campaign {
     public Campaign(String id, String title, String body, String url,
                     List<Message.ActionButton> actions, CampaignStatus status,
                     List<String> targetTags, List<String> targetClientIds,
-                    String targetGroupId, String createdByUserId,
+                    String targetGroupId, String targetDivisionId,
+                    String createdByUserId,
                     LocalDateTime scheduledAt, LocalDateTime sentAt,
                     LocalDateTime createdAt) {
         this.id = id; this.title = title; this.body = body; this.url = url;
         this.actions = actions; this.status = status;
         this.targetTags = targetTags; this.targetClientIds = targetClientIds;
-        this.targetGroupId = targetGroupId; this.createdByUserId = createdByUserId;
+        this.targetGroupId = targetGroupId; this.targetDivisionId = targetDivisionId;
+        this.createdByUserId = createdByUserId;
         this.scheduledAt = scheduledAt; this.sentAt = sentAt;
         this.createdAt = createdAt;
     }
@@ -49,6 +52,7 @@ public class Campaign {
     public List<String> getTargetTags()             { return targetTags; }
     public List<String> getTargetClientIds()        { return targetClientIds; }
     public String getTargetGroupId()                { return targetGroupId; }
+    public String getTargetDivisionId()             { return targetDivisionId; }
     public String getCreatedByUserId()              { return createdByUserId; }
     public LocalDateTime getScheduledAt()           { return scheduledAt; }
     public LocalDateTime getSentAt()                { return sentAt; }
@@ -63,6 +67,7 @@ public class Campaign {
     public void setTargetTags(List<String> targetTags)              { this.targetTags = targetTags; }
     public void setTargetClientIds(List<String> t)                  { this.targetClientIds = t; }
     public void setTargetGroupId(String targetGroupId)              { this.targetGroupId = targetGroupId; }
+    public void setTargetDivisionId(String targetDivisionId)        { this.targetDivisionId = targetDivisionId; }
     public void setCreatedByUserId(String createdByUserId)          { this.createdByUserId = createdByUserId; }
     public void setScheduledAt(LocalDateTime scheduledAt)           { this.scheduledAt = scheduledAt; }
     public void setSentAt(LocalDateTime sentAt)                     { this.sentAt = sentAt; }
@@ -71,7 +76,7 @@ public class Campaign {
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
-        private String id, title, body, url, targetGroupId, createdByUserId;
+        private String id, title, body, url, targetGroupId, targetDivisionId, createdByUserId;
         private List<Message.ActionButton> actions;
         private CampaignStatus status;
         private List<String> targetTags, targetClientIds;
@@ -86,6 +91,7 @@ public class Campaign {
         public Builder targetTags(List<String> t)           { this.targetTags = t; return this; }
         public Builder targetClientIds(List<String> t)      { this.targetClientIds = t; return this; }
         public Builder targetGroupId(String t)              { this.targetGroupId = t; return this; }
+        public Builder targetDivisionId(String t)           { this.targetDivisionId = t; return this; }
         public Builder createdByUserId(String c)            { this.createdByUserId = c; return this; }
         public Builder scheduledAt(LocalDateTime t)         { this.scheduledAt = t; return this; }
         public Builder sentAt(LocalDateTime t)              { this.sentAt = t; return this; }
@@ -93,7 +99,7 @@ public class Campaign {
 
         public Campaign build() {
             return new Campaign(id, title, body, url, actions, status,
-                    targetTags, targetClientIds, targetGroupId,
+                    targetTags, targetClientIds, targetGroupId, targetDivisionId,
                     createdByUserId, scheduledAt, sentAt, createdAt);
         }
     }

@@ -12,7 +12,7 @@ public class FirebasePushService {
 
     private static final Logger log = LoggerFactory.getLogger(FirebasePushService.class);
 
-    // Notificação de mensagem direta 1:1
+    // Mensagem direta 1:1
     public void sendMessagePush(String fcmToken, String senderName,
                                 String body, String conversationId) {
         if (fcmToken == null || fcmToken.isBlank()) return;
@@ -24,29 +24,35 @@ public class FirebasePushService {
                             .setBody(body)
                             .build())
                     .putData("type", "DIRECT")
-                    .putData("conversationId", conversationId)
+                    .putData("title", "Nova mensagem de " + senderName)
+                    .putData("body", body)
+                    .putData("senderId", senderName)
+                    .putData("conversationId", conversationId != null ? conversationId : "")
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("Push enviado com sucesso: {}", response);
+            log.info("Push direto enviado: {}", response);
         } catch (Exception e) {
-            log.error("Erro ao enviar push: {}", e.getMessage());
+            log.error("Erro ao enviar push direto: {}", e.getMessage());
         }
     }
 
-    // Notificação de mensagem de grupo
+    // Mensagem de grupo
     public void sendGroupPush(String fcmToken, String senderName,
                               String groupName, String body, String groupId) {
         if (fcmToken == null || fcmToken.isBlank()) return;
         try {
+            String title = groupName + " — " + senderName;
             Message message = Message.builder()
                     .setToken(fcmToken)
                     .setNotification(Notification.builder()
-                            .setTitle(groupName + " — " + senderName)
+                            .setTitle(title)
                             .setBody(body)
                             .build())
                     .putData("type", "GROUP")
-                    .putData("groupId", groupId)
+                    .putData("title", title)
+                    .putData("body", body)
+                    .putData("groupId", groupId != null ? groupId : "")
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
@@ -56,7 +62,7 @@ public class FirebasePushService {
         }
     }
 
-    // Notificação de campanha
+    // Campanha — disparo inicial
     public void sendCampaignPush(String fcmToken, String title,
                                  String body, String url, String campaignId) {
         if (fcmToken == null || fcmToken.isBlank()) return;
@@ -68,6 +74,8 @@ public class FirebasePushService {
                             .setBody(body)
                             .build())
                     .putData("type", "CAMPAIGN")
+                    .putData("title", title)
+                    .putData("body", body)
                     .putData("campaignId", campaignId != null ? campaignId : "")
                     .putData("url", url != null ? url : "")
                     .build();
@@ -76,6 +84,31 @@ public class FirebasePushService {
             log.info("Push de campanha enviado: {}", response);
         } catch (Exception e) {
             log.error("Erro ao enviar push de campanha: {}", e.getMessage());
+        }
+    }
+
+    // Campanha atualizada — notifica clientes que já receberam
+    public void sendCampaignUpdatedPush(String fcmToken, String title,
+                                        String body, String campaignId) {
+        if (fcmToken == null || fcmToken.isBlank()) return;
+        try {
+            String notifTitle = "📢 Campanha atualizada: " + title;
+            Message message = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(Notification.builder()
+                            .setTitle(notifTitle)
+                            .setBody(body)
+                            .build())
+                    .putData("type", "CAMPAIGN")
+                    .putData("title", notifTitle)
+                    .putData("body", body)
+                    .putData("campaignId", campaignId != null ? campaignId : "")
+                    .build();
+
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("Push de campanha atualizada enviado: {}", response);
+        } catch (Exception e) {
+            log.error("Erro ao enviar push de campanha atualizada: {}", e.getMessage());
         }
     }
 }

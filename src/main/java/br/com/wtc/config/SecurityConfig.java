@@ -34,60 +34,51 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
 
                         // Público — login e registro
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/register"
-                        ).permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
 
-                        // Cliente pode buscar e atualizar o próprio perfil por ID
-                        .requestMatchers(HttpMethod.GET, "/api/clients/{id}")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/clients/{id}")
-                        .authenticated()
+                        // Cliente pode buscar e atualizar o próprio perfil
+                        .requestMatchers(HttpMethod.GET, "/api/clients/{id}").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/clients/{id}").authenticated()
 
-                        // Resto de /api/clients/** exclusivo do operador
-                        .requestMatchers(
-                                "/api/clients/**",
-                                "/api/campaigns/**",
-                                "/api/notes/**"
-                        ).hasRole("OPERATOR")
+                        // Campanhas recebidas — cliente autenticado
+                        .requestMatchers("/api/campaigns-received/**").authenticated()
 
-                        // Usuários — busca pública por email (para exibir nomes no chat)
+                        // Campanhas — criação e disparo exclusivo do operador
+                        .requestMatchers("/api/campaigns/**").hasRole("OPERATOR")
+
+                        // Tarefas — exclusivo do operador
+                        .requestMatchers("/api/tasks/**").hasRole("OPERATOR")
+
+                        // Auditoria — exclusivo do operador
+                        .requestMatchers("/api/audit/**").hasRole("OPERATOR")
+
+                        // Resto de clientes e notas — exclusivo do operador
+                        .requestMatchers("/api/clients/**", "/api/notes/**").hasRole("OPERATOR")
+
+                        // Usuários — autenticado
                         .requestMatchers("/api/users/**").authenticated()
 
-                        // Grupos e divisões — operador e cliente autenticado
-                        .requestMatchers(
-                                "/api/groups/**",
-                                "/api/divisions/**"
-                        ).authenticated()
-
-                        // Mensagens — operador e cliente autenticado
-                        .requestMatchers("/api/messages/**").authenticated()
+                        // Grupos, divisões e mensagens — autenticado
+                        .requestMatchers("/api/groups/**", "/api/divisions/**", "/api/messages/**").authenticated()
 
                         // Todo o resto exige autenticação
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -98,8 +89,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }
