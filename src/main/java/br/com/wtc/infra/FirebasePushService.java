@@ -87,6 +87,32 @@ public class FirebasePushService {
         }
     }
 
+    // Solicitação de troca de grupo — notifica operadores
+    public void sendGroupChangeRequestPush(String fcmToken, String clientName,
+                                           String currentGroup, String requestedGroup) {
+        if (fcmToken == null || fcmToken.isBlank()) return;
+        try {
+            String title = "📋 Nova solicitação de grupo";
+            String body  = clientName + " quer trocar de \"" + currentGroup + "\" para \"" + requestedGroup + "\"";
+            Message message = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build())
+                    .putData("type", "GROUP_REQUEST")
+                    .putData("title", title)
+                    .putData("body", body)
+                    .putData("clientName", clientName != null ? clientName : "")
+                    .build();
+
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("Push de solicitação de grupo enviado: {}", response);
+        } catch (Exception e) {
+            log.error("Erro ao enviar push de solicitação de grupo: {}", e.getMessage());
+        }
+    }
+
     // Campanha atualizada — notifica clientes que já receberam
     public void sendCampaignUpdatedPush(String fcmToken, String title,
                                         String body, String campaignId) {

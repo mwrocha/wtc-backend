@@ -23,6 +23,7 @@ public class Message {
     private Map<String, String> actionUrls;
     private MessageType type;
     private boolean read;
+    private boolean edited = false;   // ← novo
     private LocalDateTime createdAt;
 
     public Message() {}
@@ -51,6 +52,7 @@ public class Message {
     public Map<String, String> getActionUrls()      { return actionUrls; }
     public MessageType getType()                    { return type; }
     public boolean isRead()                         { return read; }
+    public boolean isEdited()                       { return edited; }
     public LocalDateTime getCreatedAt()             { return createdAt; }
 
     public void setId(String id)                                { this.id = id; }
@@ -65,6 +67,7 @@ public class Message {
     public void setActionUrls(Map<String, String> actionUrls)   { this.actionUrls = actionUrls; }
     public void setType(MessageType type)                       { this.type = type; }
     public void setRead(boolean read)                           { this.read = read; }
+    public void setEdited(boolean edited)                       { this.edited = edited; }
     public void setCreatedAt(LocalDateTime createdAt)           { this.createdAt = createdAt; }
 
     public static Builder builder() { return new Builder(); }

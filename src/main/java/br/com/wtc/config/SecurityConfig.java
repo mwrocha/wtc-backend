@@ -58,6 +58,10 @@ public class SecurityConfig {
                         // Auditoria — exclusivo do operador
                         .requestMatchers("/api/audit/**").hasRole("OPERATOR")
 
+                        // Solicitações de troca de grupo — cliente cria, operador gerencia
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/group-change-requests").hasRole("CLIENT")
+                        .requestMatchers("/api/group-change-requests/**").hasRole("OPERATOR")
+
                         // Resto de clientes e notas — exclusivo do operador
                         .requestMatchers("/api/clients/**", "/api/notes/**").hasRole("OPERATOR")
 
