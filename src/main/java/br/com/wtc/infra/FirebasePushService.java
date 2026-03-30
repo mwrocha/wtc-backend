@@ -12,9 +12,9 @@ public class FirebasePushService {
 
     private static final Logger log = LoggerFactory.getLogger(FirebasePushService.class);
 
-    // Mensagem direta 1:1
+    // Mensagem direta 1:1 — agora inclui messageId para o app atualizar o status
     public void sendMessagePush(String fcmToken, String senderName,
-                                String body, String conversationId) {
+                                String body, String conversationId, String messageId) {
         if (fcmToken == null || fcmToken.isBlank()) return;
         try {
             Message message = Message.builder()
@@ -23,11 +23,12 @@ public class FirebasePushService {
                             .setTitle("Nova mensagem de " + senderName)
                             .setBody(body)
                             .build())
-                    .putData("type", "DIRECT")
-                    .putData("title", "Nova mensagem de " + senderName)
-                    .putData("body", body)
-                    .putData("senderId", senderName)
+                    .putData("type",           "DIRECT")
+                    .putData("title",          "Nova mensagem de " + senderName)
+                    .putData("body",           body)
+                    .putData("senderId",       senderName)
                     .putData("conversationId", conversationId != null ? conversationId : "")
+                    .putData("messageId",      messageId      != null ? messageId      : "")
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
@@ -49,9 +50,9 @@ public class FirebasePushService {
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .putData("type", "GROUP")
-                    .putData("title", title)
-                    .putData("body", body)
+                    .putData("type",    "GROUP")
+                    .putData("title",   title)
+                    .putData("body",    body)
                     .putData("groupId", groupId != null ? groupId : "")
                     .build();
 
@@ -73,11 +74,11 @@ public class FirebasePushService {
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .putData("type", "CAMPAIGN")
-                    .putData("title", title)
-                    .putData("body", body)
+                    .putData("type",       "CAMPAIGN")
+                    .putData("title",      title)
+                    .putData("body",       body)
                     .putData("campaignId", campaignId != null ? campaignId : "")
-                    .putData("url", url != null ? url : "")
+                    .putData("url",        url        != null ? url        : "")
                     .build();
 
             String response = FirebaseMessaging.getInstance().send(message);
@@ -100,9 +101,9 @@ public class FirebasePushService {
                             .setTitle(title)
                             .setBody(body)
                             .build())
-                    .putData("type", "GROUP_REQUEST")
-                    .putData("title", title)
-                    .putData("body", body)
+                    .putData("type",       "GROUP_REQUEST")
+                    .putData("title",      title)
+                    .putData("body",       body)
                     .putData("clientName", clientName != null ? clientName : "")
                     .build();
 
@@ -113,7 +114,7 @@ public class FirebasePushService {
         }
     }
 
-    // Campanha atualizada — notifica clientes que já receberam
+    // Campanha atualizada — notifica clientes
     public void sendCampaignUpdatedPush(String fcmToken, String title,
                                         String body, String campaignId) {
         if (fcmToken == null || fcmToken.isBlank()) return;
@@ -125,9 +126,9 @@ public class FirebasePushService {
                             .setTitle(notifTitle)
                             .setBody(body)
                             .build())
-                    .putData("type", "CAMPAIGN")
-                    .putData("title", notifTitle)
-                    .putData("body", body)
+                    .putData("type",       "CAMPAIGN")
+                    .putData("title",      notifTitle)
+                    .putData("body",       body)
                     .putData("campaignId", campaignId != null ? campaignId : "")
                     .build();
 

@@ -20,6 +20,7 @@ public class User {
     private String name;
     private String role; // "OPERATOR" ou "CLIENT"
     private String fcmToken;
+    private String avatarKey; // ← chave do objeto no R2 (ex: "images/uuid.jpg")
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -42,6 +43,7 @@ public class User {
     public String getName()                 { return name; }
     public String getRole()                 { return role; }
     public String getFcmToken()             { return fcmToken; }
+    public String getAvatarKey()            { return avatarKey; }
     public boolean isActive()               { return active; }
     public LocalDateTime getCreatedAt()     { return createdAt; }
     public LocalDateTime getUpdatedAt()     { return updatedAt; }
@@ -60,6 +62,7 @@ public class User {
     public void setName(String name)                { this.name = name; }
     public void setRole(String role)                { this.role = role; }
     public void setFcmToken(String fcmToken)        { this.fcmToken = fcmToken; }
+    public void setAvatarKey(String avatarKey)      { this.avatarKey = avatarKey; }
     public void setActive(boolean active)           { this.active = active; }
     public void setCreatedAt(LocalDateTime t)       { this.createdAt = t; }
     public void setUpdatedAt(LocalDateTime t)       { this.updatedAt = t; }
@@ -74,7 +77,7 @@ public class User {
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
-        private String id, email, password, name, role, fcmToken;
+        private String id, email, password, name, role, fcmToken, avatarKey;
         private String phone, status, divisionId, groupId;
         private int score;
         private List<String> tags, noteIds;
@@ -87,6 +90,7 @@ public class User {
         public Builder name(String name)            { this.name = name; return this; }
         public Builder role(String role)            { this.role = role; return this; }
         public Builder fcmToken(String t)           { this.fcmToken = t; return this; }
+        public Builder avatarKey(String a)          { this.avatarKey = a; return this; }
         public Builder active(boolean active)       { this.active = active; return this; }
         public Builder createdAt(LocalDateTime t)   { this.createdAt = t; return this; }
         public Builder updatedAt(LocalDateTime t)   { this.updatedAt = t; return this; }
@@ -102,6 +106,7 @@ public class User {
             User u = new User();
             u.id = id; u.email = email; u.password = password;
             u.name = name; u.role = role; u.fcmToken = fcmToken;
+            u.avatarKey = avatarKey;
             u.active = active; u.createdAt = createdAt; u.updatedAt = updatedAt;
             u.phone = phone; u.status = status; u.score = score;
             u.tags = tags; u.divisionId = divisionId; u.groupId = groupId;

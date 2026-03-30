@@ -23,7 +23,16 @@ public class Message {
     private Map<String, String> actionUrls;
     private MessageType type;
     private boolean read;
-    private boolean edited = false;   // ← novo
+    private boolean edited = false;
+
+    // ── Status de entrega ─────────────────────────────────────────────────────
+    // SENDING  → criada localmente no app, ainda não confirmada pelo servidor
+    // SENT     → salva no MongoDB com sucesso
+    // DELIVERED→ destinatário buscou a mensagem via polling/push
+    // READ     → destinatário abriu a conversa e leu
+    // FAILED   → falha ao salvar/entregar
+    private MessageStatus status = MessageStatus.SENT;
+
     private LocalDateTime createdAt;
 
     public Message() {}
@@ -38,6 +47,7 @@ public class Message {
         this.groupId = groupId; this.title = title; this.body = body;
         this.url = url; this.actions = actions; this.actionUrls = actionUrls;
         this.type = type; this.read = read; this.createdAt = createdAt;
+        this.status = MessageStatus.SENT;
     }
 
     public String getId()                           { return id; }
@@ -53,6 +63,7 @@ public class Message {
     public MessageType getType()                    { return type; }
     public boolean isRead()                         { return read; }
     public boolean isEdited()                       { return edited; }
+    public MessageStatus getStatus()                { return status; }
     public LocalDateTime getCreatedAt()             { return createdAt; }
 
     public void setId(String id)                                { this.id = id; }
@@ -68,6 +79,7 @@ public class Message {
     public void setType(MessageType type)                       { this.type = type; }
     public void setRead(boolean read)                           { this.read = read; }
     public void setEdited(boolean edited)                       { this.edited = edited; }
+    public void setStatus(MessageStatus status)                 { this.status = status; }
     public void setCreatedAt(LocalDateTime createdAt)           { this.createdAt = createdAt; }
 
     public static Builder builder() { return new Builder(); }
@@ -78,6 +90,7 @@ public class Message {
         private List<ActionButton> actions;
         private Map<String, String> actionUrls;
         private MessageType type;
+        private MessageStatus status = MessageStatus.SENT;
         private boolean read;
         private LocalDateTime createdAt;
 
@@ -92,6 +105,7 @@ public class Message {
         public Builder actions(List<ActionButton> a)            { this.actions = a; return this; }
         public Builder actionUrls(Map<String, String> a)        { this.actionUrls = a; return this; }
         public Builder type(MessageType t)                      { this.type = t; return this; }
+        public Builder status(MessageStatus s)                  { this.status = s; return this; }
         public Builder read(boolean r)                          { this.read = r; return this; }
         public Builder createdAt(LocalDateTime t)               { this.createdAt = t; return this; }
 
@@ -119,5 +133,14 @@ public class Message {
 
     public enum MessageType {
         CHAT, CAMPAIGN, NOTIFICATION
+    }
+
+    // ── Enum de status de entrega ─────────────────────────────────────────────
+    public enum MessageStatus {
+        SENDING,    // Criando localmente (app)
+        SENT,       // Salvo no servidor com sucesso
+        DELIVERED,  // Destinatário buscou a mensagem
+        READ,       // Destinatário abriu e leu
+        FAILED      // Falha no envio
     }
 }

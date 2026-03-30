@@ -66,9 +66,13 @@ public class MessageController {
     }
 
     // GET /api/messages/conversation/{conversationId}
+    // Ao buscar a conversa, marca automaticamente as mensagens recebidas como DELIVERED
     @GetMapping("/conversation/{conversationId}")
-    public ResponseEntity<List<Message>> getConversation(@PathVariable String conversationId) {
-        return ResponseEntity.ok(messageService.getConversation(conversationId));
+    public ResponseEntity<List<Message>> getConversation(
+            @PathVariable String conversationId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails != null ? userDetails.getUsername() : "";
+        return ResponseEntity.ok(messageService.getConversation(conversationId, email));
     }
 
     // GET /api/messages/my-conversations
@@ -95,13 +99,13 @@ public class MessageController {
         return ResponseEntity.ok(Map.of("count", messageService.countUnread(userDetails.getUsername())));
     }
 
-    // PATCH /api/messages/{id}/read
+    // PATCH /api/messages/{id}/read → marca como READ
     @PatchMapping("/{id}/read")
     public ResponseEntity<Message> markAsRead(@PathVariable String id) {
         return ResponseEntity.ok(messageService.markAsRead(id));
     }
 
-    // PATCH /api/messages/conversation/{conversationId}/read
+    // PATCH /api/messages/conversation/{conversationId}/read → marca conversa inteira como READ
     @PatchMapping("/conversation/{conversationId}/read")
     public ResponseEntity<Void> markConversationAsRead(
             @PathVariable String conversationId,

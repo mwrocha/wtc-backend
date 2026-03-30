@@ -88,6 +88,14 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- MinIO SDK — compatível com Cloudflare R2 -->
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>8.5.10</version>
+		</dependency>
+
+
 		<!-- Testes -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -111,7 +119,7 @@
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
+							<artifactId>lombok</artifactId>a
 							<version>${lombok.version}</version>
 						</path>
 					</annotationProcessorPaths>

@@ -4,6 +4,11 @@ spring:
   data:
     mongodb:
       uri: mongodb+srv://wtcadmin:20605280@wtc.khkq5ro.mongodb.net/wtcdb?retryWrites=true&w=majority&appName=WTC
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080
@@ -11,3 +16,10 @@ server:
 jwt:
   secret: wtc_connecta_secret_key_minimo_256_bits_seguro
   expiration: 86400000
+
+r2:
+  endpoint: https://cd9bb7c9721c176571ba40bebc1792d8.r2.cloudflarestorage.com
+  access-key: e977acdd8cc01cac7b4d097e7004c4ae
+  secret-key: ad8387548a34e4518a5eba5c0bc0cdd35ca985d72b97fbb0195243f522d14ff6
+  bucket: wtc-uploads
+  presigned-expiry-minutes: 60

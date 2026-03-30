@@ -14,8 +14,8 @@ import java.util.List;
 @Service
 public class MessageService {
 
-    private final MessageRepository  messageRepository;
-    private final UserRepository     userRepository;
+    private final MessageRepository   messageRepository;
+    private final UserRepository      userRepository;
     private final FirebasePushService firebasePushService;
 
     public MessageService(MessageRepository messageRepository,
@@ -53,6 +53,7 @@ public class MessageService {
                 .title(title)
                 .body(body)
                 .type(Message.MessageType.CHAT)
+                .status(Message.MessageStatus.SENT)  // ← SENT ao salvar no servidor
                 .read(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -62,10 +63,13 @@ public class MessageService {
         final String finalRecipientEmail = recipientEmail;
         final String finalSenderEmail    = senderEmail;
         final String finalConversationId = conversationId;
+        final String finalMessageId      = saved.getId();
+
         userRepository.findByEmail(finalRecipientEmail).ifPresent(recipient -> {
             if (recipient.getFcmToken() != null) {
                 firebasePushService.sendMessagePush(
-                        recipient.getFcmToken(), finalSenderEmail, body, finalConversationId);
+                        recipient.getFcmToken(), finalSenderEmail, body,
+                        finalConversationId, finalMessageId);
             }
         });
 
@@ -83,6 +87,7 @@ public class MessageService {
                 .title(title)
                 .body(body)
                 .type(Message.MessageType.CHAT)
+                .status(Message.MessageStatus.SENT)
                 .read(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -102,6 +107,7 @@ public class MessageService {
                 .url(campaign.getUrl())
                 .actions(campaign.getActions())
                 .type(Message.MessageType.CAMPAIGN)
+                .status(Message.MessageStatus.SENT)
                 .read(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -117,7 +123,6 @@ public class MessageService {
             }
         });
 
-        // Fallback por ID
         userRepository.findById(recipientId).ifPresent(recipient -> {
             if (recipient.getFcmToken() != null) {
                 firebasePushService.sendCampaignPush(
@@ -130,7 +135,7 @@ public class MessageService {
         return saved;
     }
 
-    // ── Campanha — propagar edição para mensagens já enviadas ─────────────────
+    // ── Campanha — propagar edição ────────────────────────────────────────────
     public int propagateCampaignUpdate(Campaign campaign) {
         String conversationId = "campaign_" + campaign.getId();
 
@@ -146,26 +151,21 @@ public class MessageService {
             msg.setActions(campaign.getActions());
             messageRepository.save(msg);
 
-            // Push de atualização para cada destinatário
             String recipientId = msg.getRecipientId();
             if (recipientId != null) {
-                // Tenta por email
                 userRepository.findByEmail(recipientId).ifPresent(recipient -> {
                     if (recipient.getFcmToken() != null) {
                         firebasePushService.sendCampaignUpdatedPush(
                                 recipient.getFcmToken(),
-                                campaign.getTitle(),
-                                campaign.getBody(),
+                                campaign.getTitle(), campaign.getBody(),
                                 campaign.getId());
                     }
                 });
-                // Fallback por ID
                 userRepository.findById(recipientId).ifPresent(recipient -> {
                     if (recipient.getFcmToken() != null) {
                         firebasePushService.sendCampaignUpdatedPush(
                                 recipient.getFcmToken(),
-                                campaign.getTitle(),
-                                campaign.getBody(),
+                                campaign.getTitle(), campaign.getBody(),
                                 campaign.getId());
                     }
                 });
@@ -175,7 +175,25 @@ public class MessageService {
         return existingMessages.size();
     }
 
-    // ── Histórico de conversa ─────────────────────────────────────────────────
+    // ── Histórico de conversa → marca mensagens como DELIVERED ───────────────
+    // Quando o destinatário busca as mensagens, atualiza status para DELIVERED
+    public List<Message> getConversation(String conversationId, String requestingUserEmail) {
+        List<Message> messages = messageRepository
+                .findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        // Marca como DELIVERED as mensagens enviadas para o usuário que está buscando
+        messages.stream()
+                .filter(m -> requestingUserEmail.equals(m.getRecipientId())
+                        && m.getStatus() == Message.MessageStatus.SENT)
+                .forEach(m -> {
+                    m.setStatus(Message.MessageStatus.DELIVERED);
+                    messageRepository.save(m);
+                });
+
+        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+    }
+
+    // Sobrecarga sem usuário (compatibilidade)
     public List<Message> getConversation(String conversationId) {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
     }
@@ -195,20 +213,23 @@ public class MessageService {
         return messageRepository.countByRecipientIdAndReadFalse(userId);
     }
 
-    // ── Marcar como lida ──────────────────────────────────────────────────────
+    // ── Marcar como lida → status READ ───────────────────────────────────────
     public Message markAsRead(String messageId) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mensagem", messageId));
         message.setRead(true);
+        message.setStatus(Message.MessageStatus.READ);
         return messageRepository.save(message);
     }
 
+    // ── Marcar conversa inteira como lida → status READ ──────────────────────
     public void markConversationAsRead(String conversationId, String userId) {
         messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
                 .stream()
                 .filter(m -> userId.equals(m.getRecipientId()) && !m.isRead())
                 .forEach(m -> {
                     m.setRead(true);
+                    m.setStatus(Message.MessageStatus.READ);
                     messageRepository.save(m);
                 });
     }
