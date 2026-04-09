@@ -80,6 +80,27 @@ public class CampaignController {
         return ResponseEntity.noContent().build();
     }
 
+    // ── Operador — campanhas recebidas por cliente específico ─────────
+
+    @GetMapping("/campaigns-received/{clientId}")
+    public ResponseEntity<List<Message>> getCampaignsByClient(
+            @PathVariable String clientId) {
+
+        List<Message> campaigns = messageRepository
+                .findByRecipientIdAndTypeOrderByCreatedAtDesc(
+                        clientId, Message.MessageType.CAMPAIGN);
+
+        if (campaigns.isEmpty()) {
+            var userOpt = userRepository.findById(clientId);
+            if (userOpt.isPresent()) {
+                campaigns = messageRepository
+                        .findByRecipientIdAndTypeOrderByCreatedAtDesc(
+                                userOpt.get().getEmail(), Message.MessageType.CAMPAIGN);
+            }
+        }
+        return ResponseEntity.ok(campaigns);
+    }
+
     // ── Cliente — campanhas recebidas ─────────────────────────────────
 
     @GetMapping("/campaigns-received")

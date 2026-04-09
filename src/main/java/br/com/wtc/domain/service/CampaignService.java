@@ -57,6 +57,7 @@ public class CampaignService {
                 .body(request.body())
                 .url(request.url())
                 .actions(request.actions())
+                .actionUrls(request.actionUrls())
                 .status(Campaign.CampaignStatus.DRAFT)
                 .targetTags(request.targetTags())
                 .targetClientIds(request.targetClientIds())
@@ -91,6 +92,8 @@ public class CampaignService {
             campaign.setUrl(request.url());
         if (request.actions() != null)
             campaign.setActions(request.actions());
+        if (request.actionUrls() != null)
+            campaign.setActionUrls(request.actionUrls());
         if (request.targetGroupId() != null)
             campaign.setTargetGroupId(request.targetGroupId());
         if (request.targetDivisionId() != null)

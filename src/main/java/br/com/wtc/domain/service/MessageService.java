@@ -1,11 +1,14 @@
 package br.com.wtc.domain.service;
 
 import br.com.wtc.domain.model.Campaign;
+import br.com.wtc.domain.model.Conversation;
 import br.com.wtc.domain.model.Message;
 import br.com.wtc.domain.repository.MessageRepository;
 import br.com.wtc.domain.repository.UserRepository;
 import br.com.wtc.infra.FirebasePushService;
 import br.com.wtc.web.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,16 +17,21 @@ import java.util.List;
 @Service
 public class MessageService {
 
+    private static final Logger log = LoggerFactory.getLogger(MessageService.class);
+
     private final MessageRepository   messageRepository;
     private final UserRepository      userRepository;
     private final FirebasePushService firebasePushService;
+    private final ConversationService conversationService;
 
     public MessageService(MessageRepository messageRepository,
                           UserRepository userRepository,
-                          FirebasePushService firebasePushService) {
+                          FirebasePushService firebasePushService,
+                          ConversationService conversationService) {
         this.messageRepository   = messageRepository;
         this.userRepository      = userRepository;
         this.firebasePushService = firebasePushService;
+        this.conversationService = conversationService;
     }
 
     // ── Mensagem direta 1:1 ───────────────────────────────────────────────────
@@ -42,6 +50,26 @@ public class MessageService {
                     .map(u -> u.getEmail()).orElse(senderId);
         }
 
+        // ── Distribuição automática ───────────────────────────────────────────
+        // Se o cliente está enviando para si mesmo (sem operador definido),
+        // busca qualquer operador ativo no sistema automaticamente
+        if (senderEmail.equals(recipientEmail)) {
+            final String clientEmail = senderEmail;
+            String operatorEmail = userRepository.findByRole("OPERATOR")
+                    .stream()
+                    .filter(u -> u.isActive())
+                    .findFirst()
+                    .map(u -> u.getEmail())
+                    .orElse(null);
+
+            if (operatorEmail != null) {
+                recipientEmail = operatorEmail;
+                log.info("Distribuição automática: cliente={} → operador={}", clientEmail, operatorEmail);
+            } else {
+                log.warn("Nenhum operador ativo encontrado para atender: {}", clientEmail);
+            }
+        }
+
         String conversationId = senderEmail.compareTo(recipientEmail) < 0
                 ? senderEmail + "_" + recipientEmail
                 : recipientEmail + "_" + senderEmail;
@@ -53,25 +81,72 @@ public class MessageService {
                 .title(title)
                 .body(body)
                 .type(Message.MessageType.CHAT)
-                .status(Message.MessageStatus.SENT)  // ← SENT ao salvar no servidor
+                .status(Message.MessageStatus.SENT)
                 .read(false)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         Message saved = messageRepository.save(message);
 
-        final String finalRecipientEmail = recipientEmail;
         final String finalSenderEmail    = senderEmail;
+        final String finalRecipientEmail = recipientEmail;
         final String finalConversationId = conversationId;
         final String finalMessageId      = saved.getId();
 
-        userRepository.findByEmail(finalRecipientEmail).ifPresent(recipient -> {
-            if (recipient.getFcmToken() != null) {
-                firebasePushService.sendMessagePush(
-                        recipient.getFcmToken(), finalSenderEmail, body,
-                        finalConversationId, finalMessageId);
-            }
-        });
+        // ── Verifica role do remetente ────────────────────────────────────────
+        boolean senderIsClient = userRepository.findByEmail(finalSenderEmail)
+                .map(u -> "CLIENT".equals(u.getRole()))
+                .orElse(false);
+
+        if (senderIsClient) {
+            // ── Remetente é CLIENT ────────────────────────────────────────────
+
+            // 1. Atualiza fila de atendimento
+            log.info("Cliente detectado, adicionando à fila: {}", finalConversationId);
+            conversationService.onClientMessageSent(
+                    finalConversationId, finalSenderEmail,
+                    body.length() > 60 ? body.substring(0, 60) + "..." : body
+            );
+
+            // 2. Push inteligente baseado no status da conversa
+            conversationService.getByConversationId(finalConversationId)
+                    .ifPresentOrElse(conv -> {
+                        if (conv.getStatus() == Conversation.ConversationStatus.IN_PROGRESS
+                                && conv.getAssignedOperatorEmail() != null) {
+                            // Conversa já assumida → push só para o operador responsável
+                            log.info("Conversa IN_PROGRESS → push para operador: {}",
+                                    conv.getAssignedOperatorEmail());
+                            userRepository.findByEmail(conv.getAssignedOperatorEmail())
+                                    .ifPresent(operator -> {
+                                        if (operator.getFcmToken() != null) {
+                                            firebasePushService.sendMessagePush(
+                                                    operator.getFcmToken(), finalSenderEmail,
+                                                    body, finalConversationId, finalMessageId);
+                                        }
+                                    });
+                        } else {
+                            // Conversa OPEN ou CLOSED → sem push individual
+                            // (fila de atendimento já notifica visualmente no dashboard)
+                            log.info("Conversa {} → sem push individual, fila notifica",
+                                    conv.getStatus());
+                        }
+                    }, () -> {
+                        // Conversa nova (ainda não existe no banco) → sem push
+                        // será criada como OPEN pelo onClientMessageSent acima
+                        log.info("Conversa nova → sem push individual, fila notifica");
+                    });
+
+        } else {
+            // ── Remetente é OPERATOR → push normal para o cliente ─────────────
+            // Não altera nada no fluxo do cliente
+            userRepository.findByEmail(finalRecipientEmail).ifPresent(recipient -> {
+                if (recipient.getFcmToken() != null) {
+                    firebasePushService.sendMessagePush(
+                            recipient.getFcmToken(), finalSenderEmail, body,
+                            finalConversationId, finalMessageId);
+                }
+            });
+        }
 
         return saved;
     }
@@ -106,6 +181,7 @@ public class MessageService {
                 .body(campaign.getBody())
                 .url(campaign.getUrl())
                 .actions(campaign.getActions())
+                .actionUrls(campaign.getActionUrls())
                 .type(Message.MessageType.CAMPAIGN)
                 .status(Message.MessageStatus.SENT)
                 .read(false)
@@ -149,6 +225,7 @@ public class MessageService {
             msg.setBody(campaign.getBody());
             msg.setUrl(campaign.getUrl());
             msg.setActions(campaign.getActions());
+            msg.setActionUrls(campaign.getActionUrls());
             messageRepository.save(msg);
 
             String recipientId = msg.getRecipientId();
@@ -175,13 +252,11 @@ public class MessageService {
         return existingMessages.size();
     }
 
-    // ── Histórico de conversa → marca mensagens como DELIVERED ───────────────
-    // Quando o destinatário busca as mensagens, atualiza status para DELIVERED
+    // ── Histórico de conversa → marca como DELIVERED ──────────────────────────
     public List<Message> getConversation(String conversationId, String requestingUserEmail) {
         List<Message> messages = messageRepository
                 .findByConversationIdOrderByCreatedAtAsc(conversationId);
 
-        // Marca como DELIVERED as mensagens enviadas para o usuário que está buscando
         messages.stream()
                 .filter(m -> requestingUserEmail.equals(m.getRecipientId())
                         && m.getStatus() == Message.MessageStatus.SENT)
@@ -193,7 +268,6 @@ public class MessageService {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
     }
 
-    // Sobrecarga sem usuário (compatibilidade)
     public List<Message> getConversation(String conversationId) {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
     }
@@ -213,7 +287,7 @@ public class MessageService {
         return messageRepository.countByRecipientIdAndReadFalse(userId);
     }
 
-    // ── Marcar como lida → status READ ───────────────────────────────────────
+    // ── Marcar como lida → READ ───────────────────────────────────────────────
     public Message markAsRead(String messageId) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mensagem", messageId));
@@ -222,7 +296,6 @@ public class MessageService {
         return messageRepository.save(message);
     }
 
-    // ── Marcar conversa inteira como lida → status READ ──────────────────────
     public void markConversationAsRead(String conversationId, String userId) {
         messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
                 .stream()
