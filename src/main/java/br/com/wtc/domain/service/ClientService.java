@@ -58,6 +58,9 @@ public class ClientService {
         client.setDivisionId(updated.getDivisionId());
         client.setGroupId(updated.getGroupId());
         client.setUpdatedAt(LocalDateTime.now());
+        // ── fcmToken NUNCA é sobrescrito via PUT ──────────────────────────────
+        // O token é gerenciado exclusivamente pelo endpoint /api/users/me/fcm-token
+        // para evitar que um token de um aparelho seja atribuído a outro usuário
         return userRepository.save(client);
     }
 }
