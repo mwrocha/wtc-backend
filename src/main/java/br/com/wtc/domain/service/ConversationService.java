@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +29,6 @@ public class ConversationService {
         this.userRepository         = userRepository;
     }
 
-    /**
-     * Cria ou atualiza a entrada de conversa quando um cliente envia mensagem.
-     * Se estava CLOSED, reabre como OPEN para qualquer operador ver.
-     */
     public void onClientMessageSent(String conversationId, String clientEmail,
                                     String messagePreview) {
         Optional<Conversation> existing = conversationRepository
@@ -60,9 +58,6 @@ public class ConversationService {
         }
     }
 
-    /**
-     * Operador assume o atendimento de uma conversa.
-     */
     public Conversation assumeConversation(String conversationId, String operatorEmail) {
         Conversation conv = conversationRepository
                 .findByConversationId(conversationId)
@@ -80,9 +75,6 @@ public class ConversationService {
         return conversationRepository.save(conv);
     }
 
-    /**
-     * Operador encerra o atendimento.
-     */
     public Conversation closeConversation(String conversationId, String operatorEmail) {
         Conversation conv = conversationRepository
                 .findByConversationId(conversationId)
@@ -94,16 +86,11 @@ public class ConversationService {
         return conversationRepository.save(conv);
     }
 
-    /**
-     * Lista conversas OPEN com clientId incluído para navegação direta no app.
-     * Usa HashMap para suportar mais de 10 campos (limite do Map.of).
-     */
     public List<Map<String, Object>> getPendingConversations() {
         List<Conversation> pending = conversationRepository
                 .findByStatus(Conversation.ConversationStatus.OPEN);
 
         return pending.stream().map(conv -> {
-            // Busca o cliente pelo email para obter o id e o nome
             var clientOpt = userRepository.findByEmail(conv.getClientEmail());
             String clientName = clientOpt.map(u -> u.getName()).orElse(conv.getClientEmail());
             String clientId   = clientOpt.map(u -> u.getId()).orElse("");
@@ -112,7 +99,7 @@ public class ConversationService {
             result.put("conversationId",     conv.getConversationId());
             result.put("clientEmail",        conv.getClientEmail());
             result.put("clientName",         clientName);
-            result.put("clientId",           clientId);   // ← novo campo para navegação direta
+            result.put("clientId",           clientId);
             result.put("lastMessagePreview", conv.getLastMessagePreview() != null
                     ? conv.getLastMessagePreview() : "");
             result.put("status",             conv.getStatus().name());
@@ -124,16 +111,74 @@ public class ConversationService {
         }).toList();
     }
 
+    public List<Map<String, Object>> getMyActiveConversations(String operatorEmail) {
+        List<Conversation> active = conversationRepository
+                .findByAssignedOperatorEmail(operatorEmail)
+                .stream()
+                .filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS)
+                .toList();
+
+        return active.stream().map(conv -> {
+            var clientOpt = userRepository.findByEmail(conv.getClientEmail());
+            String clientName = clientOpt.map(u -> u.getName()).orElse(conv.getClientEmail());
+            String clientId   = clientOpt.map(u -> u.getId()).orElse("");
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("conversationId",     conv.getConversationId());
+            result.put("clientEmail",        conv.getClientEmail());
+            result.put("clientName",         clientName);
+            result.put("clientId",           clientId);
+            result.put("lastMessagePreview", conv.getLastMessagePreview() != null
+                    ? conv.getLastMessagePreview() : "");
+            result.put("status",             conv.getStatus().name());
+            result.put("assumedAt",          conv.getAssumedAt() != null
+                    ? conv.getAssumedAt().toString() : "");
+            result.put("updatedAt",          conv.getUpdatedAt() != null
+                    ? conv.getUpdatedAt().toString() : "");
+            return result;
+        }).toList();
+    }
+
     /**
-     * Conta conversas abertas — badge do dashboard.
+     * Estatísticas de atendimento do operador logado:
+     * - active:    conversas IN_PROGRESS agora
+     * - today:     conversas CLOSED com updatedAt hoje
+     * - thisMonth: conversas CLOSED com updatedAt neste mês
      */
+    public Map<String, Long> getMyStats(String operatorEmail) {
+        List<Conversation> all = conversationRepository
+                .findByAssignedOperatorEmail(operatorEmail);
+
+        LocalDate today     = LocalDate.now();
+        YearMonth thisMonth = YearMonth.now();
+
+        long active = all.stream()
+                .filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS)
+                .count();
+
+        long closedToday = all.stream()
+                .filter(c -> c.getStatus() == Conversation.ConversationStatus.CLOSED
+                        && c.getUpdatedAt() != null
+                        && c.getUpdatedAt().toLocalDate().equals(today))
+                .count();
+
+        long closedThisMonth = all.stream()
+                .filter(c -> c.getStatus() == Conversation.ConversationStatus.CLOSED
+                        && c.getUpdatedAt() != null
+                        && YearMonth.from(c.getUpdatedAt()).equals(thisMonth))
+                .count();
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("active",       active);
+        stats.put("today",        closedToday);
+        stats.put("thisMonth",    closedThisMonth);
+        return stats;
+    }
+
     public long countPending() {
         return conversationRepository.countByStatus(Conversation.ConversationStatus.OPEN);
     }
 
-    /**
-     * Status atual de uma conversa.
-     */
     public Optional<Conversation> getByConversationId(String conversationId) {
         return conversationRepository.findByConversationId(conversationId);
     }
