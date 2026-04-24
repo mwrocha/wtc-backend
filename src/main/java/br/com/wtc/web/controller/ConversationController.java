@@ -40,16 +40,20 @@ public class ConversationController {
                 conversationService.getMyActiveConversations(userDetails.getUsername()));
     }
 
-    /**
-     * GET /api/conversations/my-stats
-     * Retorna métricas de atendimento do operador logado:
-     * { active, today, thisMonth }
-     */
+    // GET /api/conversations/my-stats
     @GetMapping("/my-stats")
     public ResponseEntity<Map<String, Long>> getMyStats(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(
                 conversationService.getMyStats(userDetails.getUsername()));
+    }
+
+    // GET /api/conversations/my-closed-sessions
+    @GetMapping("/my-closed-sessions")
+    public ResponseEntity<List<Map<String, Object>>> getMyClosedSessions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                conversationService.getMyClosedSessions(userDetails.getUsername()));
     }
 
     // POST /api/conversations/{conversationId}/assume
