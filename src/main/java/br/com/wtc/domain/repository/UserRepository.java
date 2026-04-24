@@ -27,4 +27,7 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     // Busca clientes por nome parcial
     List<User> findByRoleAndNameContainingIgnoreCase(String role, String name);
+
+    // Busca usuários pelo FCM token — usado para deduplicação ao salvar novo token
+    List<User> findAllByFcmToken(String fcmToken);
 }
