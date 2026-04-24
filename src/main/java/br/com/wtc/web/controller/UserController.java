@@ -38,14 +38,68 @@ public class UserController {
                         "name",      u.getName(),
                         "email",     u.getEmail(),
                         "role",      u.getRole(),
-                        // Retorna URL pré-assinada do avatar se existir
                         "avatarKey", u.getAvatarKey() != null ? u.getAvatarKey() : ""
                 )))
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // ── PATCH /api/users/me/name ──────────────────────────────────────────────
+    @PatchMapping("/me/name")
+    public ResponseEntity<?> updateMyName(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String name = body.get("name");
+        if (name == null || name.isBlank())
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Nome não pode ser vazio."));
+
+        Optional<User> userOpt = userRepository.findByEmail(userDetails.getUsername());
+        if (userOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        User user = userOpt.get();
+        user.setName(name.trim());
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "id",   user.getId(),
+                "name", user.getName()
+        ));
+    }
+
+    // ── PATCH /api/users/me/fcm-token ─────────────────────────────────────────
+    // Chamado pelo app ao fazer login — garante que o token é único por usuário
+    @PatchMapping("/me/fcm-token")
+    public ResponseEntity<?> updateFcmToken(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String fcmToken = body.get("fcmToken");
+        if (fcmToken == null || fcmToken.isBlank())
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "fcmToken não pode ser vazio."));
+
+        Optional<User> userOpt = userRepository.findByEmail(userDetails.getUsername());
+        if (userOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        // ── Remove este token de qualquer outro usuário que o possua ──────────
+        // Evita que notificações sejam entregues ao aparelho errado quando
+        // o mesmo dispositivo foi usado por mais de uma conta
+        userRepository.findAllByFcmToken(fcmToken).forEach(other -> {
+            if (!other.getId().equals(userOpt.get().getId())) {
+                other.setFcmToken(null);
+                userRepository.save(other);
+            }
+        });
+
+        User user = userOpt.get();
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "FCM token atualizado."));
+    }
+
     // ── POST /api/users/avatar ────────────────────────────────────────────────
-    // Faz upload da foto de perfil para o R2 e salva a chave no MongoDB
     @PostMapping("/avatar")
     public ResponseEntity<?> uploadAvatar(
             @RequestParam("file") MultipartFile file,
@@ -61,29 +115,16 @@ public class UserController {
         User user = userOpt.get();
 
         try {
-            // Remove avatar antigo do R2 se existir
             if (user.getAvatarKey() != null && !user.getAvatarKey().isBlank()) {
                 storageService.delete(user.getAvatarKey());
             }
-
-            // Faz upload do novo avatar
             String objectKey = storageService.upload(file);
-
-            // Gera URL pré-assinada para retornar ao app
             String presignedUrl = storageService.generatePresignedUrl(objectKey);
-
-            // Salva a chave no MongoDB
             user.setAvatarKey(objectKey);
             userRepository.save(user);
-
-            return ResponseEntity.ok(Map.of(
-                    "objectKey", objectKey,
-                    "url",       presignedUrl
-            ));
-
+            return ResponseEntity.ok(Map.of("objectKey", objectKey, "url", presignedUrl));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Erro ao fazer upload do avatar."));
@@ -91,7 +132,6 @@ public class UserController {
     }
 
     // ── GET /api/users/avatar ─────────────────────────────────────────────────
-    // Retorna URL pré-assinada do avatar do usuário logado
     @GetMapping("/avatar")
     public ResponseEntity<?> getMyAvatar(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -100,13 +140,9 @@ public class UserController {
                 .map(user -> {
                     if (user.getAvatarKey() == null || user.getAvatarKey().isBlank())
                         return ResponseEntity.ok(Map.of("url", ""));
-
                     try {
                         String url = storageService.generatePresignedUrl(user.getAvatarKey());
-                        return ResponseEntity.ok(Map.of(
-                                "url",       url,
-                                "objectKey", user.getAvatarKey()
-                        ));
+                        return ResponseEntity.ok(Map.of("url", url, "objectKey", user.getAvatarKey()));
                     } catch (Exception e) {
                         return ResponseEntity.ok(Map.of("url", ""));
                     }
@@ -115,7 +151,6 @@ public class UserController {
     }
 
     // ── DELETE /api/users/avatar ──────────────────────────────────────────────
-    // Remove a foto de perfil do R2 e limpa o campo no MongoDB
     @DeleteMapping("/avatar")
     public ResponseEntity<?> deleteAvatar(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -131,6 +166,8 @@ public class UserController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    // ── POST /api/users/change-email ──────────────────────────────────────────
     @PostMapping("/change-email")
     public ResponseEntity<?> changeEmail(
             @RequestBody Map<String, String> body,
@@ -140,20 +177,17 @@ public class UserController {
         String password = body.get("password");
 
         if (newEmail == null || newEmail.isBlank() || password == null)
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Dados inválidos"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Dados inválidos"));
 
         if (userRepository.existsByEmail(newEmail))
-            return ResponseEntity.status(409)
-                    .body(Map.of("message", "Este e-mail já está em uso"));
+            return ResponseEntity.status(409).body(Map.of("message", "Este e-mail já está em uso"));
 
         Optional<User> userOpt = userRepository.findByEmail(userDetails.getUsername());
         if (userOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         User user = userOpt.get();
         if (!passwordEncoder.matches(password, user.getPassword()))
-            return ResponseEntity.status(401)
-                    .body(Map.of("message", "Senha incorreta"));
+            return ResponseEntity.status(401).body(Map.of("message", "Senha incorreta"));
 
         user.setEmail(newEmail);
         userRepository.save(user);
@@ -170,16 +204,14 @@ public class UserController {
         String newPassword     = body.get("newPassword");
 
         if (currentPassword == null || newPassword == null || newPassword.length() < 6)
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Dados inválidos"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Dados inválidos"));
 
         Optional<User> userOpt = userRepository.findByEmail(userDetails.getUsername());
         if (userOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         User user = userOpt.get();
         if (!passwordEncoder.matches(currentPassword, user.getPassword()))
-            return ResponseEntity.status(401)
-                    .body(Map.of("message", "Senha atual incorreta"));
+            return ResponseEntity.status(401).body(Map.of("message", "Senha atual incorreta"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
