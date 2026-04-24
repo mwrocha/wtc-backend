@@ -80,9 +80,7 @@ public class MessageController {
     public ResponseEntity<List<Message>> getMyConversations(
             @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
-        return userRepository.findByEmail(email)
-                .map(user -> ResponseEntity.ok(messageService.getMyConversations(email, user.getId())))
-                .orElse(ResponseEntity.ok(List.of()));
+        return ResponseEntity.ok(messageService.getMyConversations(email, email));
     }
 
     // GET /api/messages/unread
