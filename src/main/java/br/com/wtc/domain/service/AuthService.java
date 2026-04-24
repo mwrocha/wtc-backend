@@ -42,6 +42,19 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
 
+        // ── Limpar FCM token de outros usuários que o possuam ────────────────
+        // Garante que notificações não sejam entregues ao aparelho errado
+        // quando o mesmo dispositivo foi usado por mais de um usuário
+        String currentFcmToken = user.getFcmToken();
+        if (currentFcmToken != null && !currentFcmToken.isBlank()) {
+            userRepository.findAllByFcmToken(currentFcmToken).forEach(other -> {
+                if (!other.getId().equals(user.getId())) {
+                    other.setFcmToken(null);
+                    userRepository.save(other);
+                }
+            });
+        }
+
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
         return new LoginResponse(token, user.getId(), user.getEmail(), user.getName(), user.getRole());
     }
