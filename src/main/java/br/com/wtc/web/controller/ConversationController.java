@@ -20,28 +20,39 @@ public class ConversationController {
         this.conversationService = conversationService;
     }
 
-    /**
-     * GET /api/conversations/pending
-     * Lista todas as conversas aguardando atendimento.
-     */
+    // GET /api/conversations/pending
     @GetMapping("/pending")
     public ResponseEntity<List<Map<String, Object>>> getPending() {
         return ResponseEntity.ok(conversationService.getPendingConversations());
     }
 
-    /**
-     * GET /api/conversations/pending/count
-     * Retorna o número de conversas pendentes — usado para o badge.
-     */
+    // GET /api/conversations/pending/count
     @GetMapping("/pending/count")
     public ResponseEntity<Map<String, Long>> getPendingCount() {
         return ResponseEntity.ok(Map.of("count", conversationService.countPending()));
     }
 
+    // GET /api/conversations/my-active
+    @GetMapping("/my-active")
+    public ResponseEntity<List<Map<String, Object>>> getMyActive(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                conversationService.getMyActiveConversations(userDetails.getUsername()));
+    }
+
     /**
-     * POST /api/conversations/{conversationId}/assume
-     * Operador assume o atendimento — remove da fila para todos.
+     * GET /api/conversations/my-stats
+     * Retorna métricas de atendimento do operador logado:
+     * { active, today, thisMonth }
      */
+    @GetMapping("/my-stats")
+    public ResponseEntity<Map<String, Long>> getMyStats(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                conversationService.getMyStats(userDetails.getUsername()));
+    }
+
+    // POST /api/conversations/{conversationId}/assume
     @PostMapping("/{conversationId}/assume")
     public ResponseEntity<?> assume(
             @PathVariable String conversationId,
@@ -61,11 +72,7 @@ public class ConversationController {
         }
     }
 
-    /**
-     * POST /api/conversations/{conversationId}/close
-     * Operador encerra o atendimento — status vai para CLOSED.
-     * Se o cliente enviar nova mensagem, reabre como OPEN automaticamente.
-     */
+    // POST /api/conversations/{conversationId}/close
     @PostMapping("/{conversationId}/close")
     public ResponseEntity<?> close(
             @PathVariable String conversationId,
@@ -84,10 +91,7 @@ public class ConversationController {
         }
     }
 
-    /**
-     * GET /api/conversations/{conversationId}/status
-     * Retorna o status atual de uma conversa.
-     */
+    // GET /api/conversations/{conversationId}/status
     @GetMapping("/{conversationId}/status")
     public ResponseEntity<?> getStatus(@PathVariable String conversationId) {
         return conversationService.getByConversationId(conversationId)
