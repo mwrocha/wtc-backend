@@ -93,6 +93,11 @@ public class MessageService {
         final String finalConversationId = conversationId;
         final String finalMessageId      = saved.getId();
 
+        // log pra achar erro de direcionamento errado usuário
+        log.info("DEBUG sendDirect: sender={} recipient={} conversationId={}",
+                finalSenderEmail, finalRecipientEmail, finalConversationId);
+
+
         // ── Verifica role do remetente ────────────────────────────────────────
         boolean senderIsClient = userRepository.findByEmail(finalSenderEmail)
                 .map(u -> "CLIENT".equals(u.getRole()))
@@ -111,6 +116,10 @@ public class MessageService {
             // 2. Push inteligente baseado no status da conversa
             conversationService.getByConversationId(finalConversationId)
                     .ifPresentOrElse(conv -> {
+                        // ← ADICIONAR AQUI
+                        log.info("DEBUG conversa encontrada: id={} status={} operador={}",
+                                conv.getConversationId(), conv.getStatus(), conv.getAssignedOperatorEmail());
+
                         if (conv.getStatus() == Conversation.ConversationStatus.IN_PROGRESS
                                 && conv.getAssignedOperatorEmail() != null) {
                             // Conversa já assumida → push só para o operador responsável
