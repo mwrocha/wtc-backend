@@ -33,4 +33,10 @@ public interface AttendanceSessionRepository extends MongoRepository<AttendanceS
             String operatorEmail,
             AttendanceSession.SessionStatus status
     );
+
+    // Sessões encerradas de um cliente (para avaliação)
+    List<AttendanceSession> findByClientEmailAndStatus(
+            String clientEmail,
+            AttendanceSession.SessionStatus status
+    );
 }
