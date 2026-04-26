@@ -19,10 +19,13 @@ public interface MessageRepository extends MongoRepository<Message, String> {
 
     long countByRecipientIdAndReadFalse(String recipientId);
 
+    // ← Conta apenas mensagens de CHAT não lidas (exclui campanhas)
+    long countByRecipientIdAndReadFalseAndType(
+            String recipientId, Message.MessageType type);
+
     List<Message> findBySenderIdOrRecipientIdOrderByCreatedAtAsc(
             String senderId, String recipientId);
 
-    // Campanhas recebidas por um destinatário específico
     List<Message> findByRecipientIdAndTypeOrderByCreatedAtDesc(
             String recipientId, Message.MessageType type);
 }
