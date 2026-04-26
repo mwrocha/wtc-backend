@@ -50,9 +50,6 @@ public class MessageService {
                     .map(u -> u.getEmail()).orElse(senderId);
         }
 
-        // ── Distribuição automática ───────────────────────────────────────────
-        // Se o cliente está enviando para si mesmo (sem operador definido),
-        // busca qualquer operador ativo no sistema automaticamente
         if (senderEmail.equals(recipientEmail)) {
             final String clientEmail = senderEmail;
             String operatorEmail = userRepository.findByRole("OPERATOR")
@@ -93,36 +90,27 @@ public class MessageService {
         final String finalConversationId = conversationId;
         final String finalMessageId      = saved.getId();
 
-        // log pra achar erro de direcionamento errado usuário
         log.info("DEBUG sendDirect: sender={} recipient={} conversationId={}",
                 finalSenderEmail, finalRecipientEmail, finalConversationId);
 
-
-        // ── Verifica role do remetente ────────────────────────────────────────
         boolean senderIsClient = userRepository.findByEmail(finalSenderEmail)
                 .map(u -> "CLIENT".equals(u.getRole()))
                 .orElse(false);
 
         if (senderIsClient) {
-            // ── Remetente é CLIENT ────────────────────────────────────────────
-
-            // 1. Atualiza fila de atendimento
             log.info("Cliente detectado, adicionando à fila: {}", finalConversationId);
             conversationService.onClientMessageSent(
                     finalConversationId, finalSenderEmail,
                     body.length() > 60 ? body.substring(0, 60) + "..." : body
             );
 
-            // 2. Push inteligente baseado no status da conversa
             conversationService.getByConversationId(finalConversationId)
                     .ifPresentOrElse(conv -> {
-                        // ← ADICIONAR AQUI
                         log.info("DEBUG conversa encontrada: id={} status={} operador={}",
                                 conv.getConversationId(), conv.getStatus(), conv.getAssignedOperatorEmail());
 
                         if (conv.getStatus() == Conversation.ConversationStatus.IN_PROGRESS
                                 && conv.getAssignedOperatorEmail() != null) {
-                            // Conversa já assumida → push só para o operador responsável
                             log.info("Conversa IN_PROGRESS → push para operador: {}",
                                     conv.getAssignedOperatorEmail());
                             userRepository.findByEmail(conv.getAssignedOperatorEmail())
@@ -134,20 +122,14 @@ public class MessageService {
                                         }
                                     });
                         } else {
-                            // Conversa OPEN ou CLOSED → sem push individual
-                            // (fila de atendimento já notifica visualmente no dashboard)
                             log.info("Conversa {} → sem push individual, fila notifica",
                                     conv.getStatus());
                         }
                     }, () -> {
-                        // Conversa nova (ainda não existe no banco) → sem push
-                        // será criada como OPEN pelo onClientMessageSent acima
                         log.info("Conversa nova → sem push individual, fila notifica");
                     });
 
         } else {
-            // ── Remetente é OPERATOR → push normal para o cliente ─────────────
-            // Não altera nada no fluxo do cliente
             userRepository.findByEmail(finalRecipientEmail).ifPresent(recipient -> {
                 if (recipient.getFcmToken() != null) {
                     firebasePushService.sendMessagePush(
@@ -292,8 +274,14 @@ public class MessageService {
         return messageRepository.findByRecipientIdAndReadFalse(userId);
     }
 
+    /**
+     * Conta apenas mensagens de CHAT não lidas — exclui campanhas.
+     * Garante que o badge na HomeClientScreen reflita apenas
+     * mensagens de atendimento/grupo pendentes de leitura.
+     */
     public long countUnread(String userId) {
-        return messageRepository.countByRecipientIdAndReadFalse(userId);
+        return messageRepository.countByRecipientIdAndReadFalseAndType(
+                userId, Message.MessageType.CHAT);
     }
 
     // ── Marcar como lida → READ ───────────────────────────────────────────────
