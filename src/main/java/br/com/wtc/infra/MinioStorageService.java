@@ -17,13 +17,13 @@ public class MinioStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(MinioStorageService.class);
 
-    // Tipos permitidos (validação de segurança)
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
+            "image/jpeg", "image/png", "image/gif", "image/webp",
+            "application/pdf"   // ← PDF adicionado
     );
 
-    // Tamanho máximo: 5 MB
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    // Aumentado para 10 MB para comportar PDFs
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     private final MinioClient minioClient;
 
@@ -39,24 +39,21 @@ public class MinioStorageService {
 
     /**
      * Faz o upload do arquivo para o MinIO e retorna a chave (objectName) gerada.
-     * Lança IllegalArgumentException se o tipo ou tamanho for inválido.
+     * Aceita imagens (JPEG, PNG, GIF, WEBP) e PDFs.
      */
     public String upload(MultipartFile file) {
-        // ── Validação de tipo ─────────────────────────────────────────────────
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new IllegalArgumentException(
-                    "Tipo de arquivo não permitido. Aceitos: JPEG, PNG, GIF, WEBP.");
+                    "Tipo de arquivo não permitido. Aceitos: JPEG, PNG, GIF, WEBP, PDF.");
         }
 
-        // ── Validação de tamanho ──────────────────────────────────────────────
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new IllegalArgumentException(
-                    "Arquivo muito grande. Tamanho máximo: 5 MB.");
+                    "Arquivo muito grande. Tamanho máximo: 10 MB.");
         }
 
-        // ── Gera nome único para evitar colisão ───────────────────────────────
-        String extension = getExtension(contentType);
+        String extension  = getExtension(contentType);
         String objectName = "images/" + UUID.randomUUID() + extension;
 
         try {
@@ -73,13 +70,12 @@ public class MinioStorageService {
 
         } catch (Exception e) {
             log.error("Erro no upload MinIO: {}", e.getMessage());
-            throw new RuntimeException("Falha ao fazer upload da imagem.", e);
+            throw new RuntimeException("Falha ao fazer upload do arquivo.", e);
         }
     }
 
     /**
      * Gera uma URL pré-assinada (GET) com validade configurável.
-     * Permite acesso temporário sem expor credenciais.
      */
     public String generatePresignedUrl(String objectName) {
         try {
@@ -93,12 +89,12 @@ public class MinioStorageService {
             );
         } catch (Exception e) {
             log.error("Erro ao gerar URL pré-assinada: {}", e.getMessage());
-            throw new RuntimeException("Falha ao gerar URL de acesso à imagem.", e);
+            throw new RuntimeException("Falha ao gerar URL de acesso ao arquivo.", e);
         }
     }
 
     /**
-     * Remove um objeto do bucket (ex.: ao excluir mensagem com imagem).
+     * Remove um objeto do bucket.
      */
     public void delete(String objectName) {
         try {
@@ -114,15 +110,14 @@ public class MinioStorageService {
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private String getExtension(String contentType) {
         return switch (contentType) {
-            case "image/jpeg" -> ".jpg";
-            case "image/png"  -> ".png";
-            case "image/gif"  -> ".gif";
-            case "image/webp" -> ".webp";
-            default           -> "";
+            case "image/jpeg"     -> ".jpg";
+            case "image/png"      -> ".png";
+            case "image/gif"      -> ".gif";
+            case "image/webp"     -> ".webp";
+            case "application/pdf" -> ".pdf";
+            default               -> "";
         };
     }
 }
