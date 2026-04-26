@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,11 +20,7 @@ public class AttendanceRatingController {
         this.ratingService = ratingService;
     }
 
-    /**
-     * POST /api/ratings/{sessionId}
-     * Cliente avalia um atendimento encerrado.
-     * Body: { "stars": 5, "comment": "Ótimo atendimento!" }
-     */
+    // POST /api/ratings/{sessionId}
     @PostMapping("/{sessionId}")
     public ResponseEntity<?> submitRating(
             @PathVariable String sessionId,
@@ -42,28 +39,18 @@ public class AttendanceRatingController {
                     "stars",     rating.getStars()
             ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
-    /**
-     * GET /api/ratings/my-stats
-     * Operador consulta suas métricas de avaliação.
-     * Retorna: { average, total, distribution }
-     */
+    // GET /api/ratings/my-stats — operador consulta métricas
     @GetMapping("/my-stats")
     public ResponseEntity<Map<String, Object>> getMyStats(
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(
-                ratingService.getMyRatingStats(userDetails.getUsername()));
+        return ResponseEntity.ok(ratingService.getMyRatingStats(userDetails.getUsername()));
     }
 
-    /**
-     * GET /api/ratings/pending
-     * Cliente verifica se tem avaliação pendente.
-     * Retorna a sessão mais recente encerrada ainda não avaliada.
-     */
+    // GET /api/ratings/pending — cliente verifica avaliação pendente
     @GetMapping("/pending")
     public ResponseEntity<?> getPending(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -80,5 +67,16 @@ public class AttendanceRatingController {
                 "operatorEmail", pending.get("operatorEmail"),
                 "closedAt",      pending.get("closedAt")
         ));
+    }
+
+    /**
+     * GET /api/ratings/my-history
+     * Cliente consulta histórico de atendimentos encerrados.
+     * Retorna: sessionId, operatorName, operatorEmail, assumedAt, closedAt, stars, comment
+     */
+    @GetMapping("/my-history")
+    public ResponseEntity<List<Map<String, Object>>> getMyHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ratingService.getMyHistory(userDetails.getUsername()));
     }
 }
