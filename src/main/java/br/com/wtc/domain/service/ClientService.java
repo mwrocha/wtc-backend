@@ -24,8 +24,7 @@ public class ClientService {
     }
 
     public User getClientById(String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Cliente não encontrado: " + id));
+        User user = userRepository.findById(id).orElseThrow(() -> new BusinessException("Cliente não encontrado: " + id));
         if (!CLIENT_ROLE.equals(user.getRole())) {
             throw new BusinessException("Usuário não é um cliente: " + id);
         }
@@ -52,9 +51,11 @@ public class ClientService {
         User client = getClientById(id);
         client.setName(updated.getName());
         client.setPhone(updated.getPhone());
+        client.setCpf(updated.getCpf());
+        client.setCompany(updated.getCompany());
         client.setStatus(updated.getStatus());
         client.setScore(updated.getScore());
-        client.setTags(updated.getTags());
+        client.setTags(updated.getTags() != null ? updated.getTags() : client.getTags() != null ? client.getTags() : List.of());
         client.setDivisionId(updated.getDivisionId());
         client.setGroupId(updated.getGroupId());
         client.setUpdatedAt(LocalDateTime.now());
