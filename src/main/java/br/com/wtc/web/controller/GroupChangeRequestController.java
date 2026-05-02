@@ -21,31 +21,24 @@ import java.util.Map;
 public class GroupChangeRequestController {
 
     private final GroupChangeRequestRepository requestRepository;
-    private final UserRepository               userRepository;
-    private final GroupRepository              groupRepository;
-    private final AuditService                 auditService;
-    private final FirebasePushService          firebasePushService;
+    private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
+    private final AuditService auditService;
+    private final FirebasePushService firebasePushService;
 
-    public GroupChangeRequestController(GroupChangeRequestRepository requestRepository,
-                                        UserRepository userRepository,
-                                        GroupRepository groupRepository,
-                                        AuditService auditService,
-                                        FirebasePushService firebasePushService) {
-        this.requestRepository  = requestRepository;
-        this.userRepository     = userRepository;
-        this.groupRepository    = groupRepository;
-        this.auditService       = auditService;
+    public GroupChangeRequestController(GroupChangeRequestRepository requestRepository, UserRepository userRepository, GroupRepository groupRepository, AuditService auditService, FirebasePushService firebasePushService) {
+        this.requestRepository = requestRepository;
+        this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
+        this.auditService = auditService;
         this.firebasePushService = firebasePushService;
     }
 
     // Cliente — criar solicitação
     @PostMapping
-    public ResponseEntity<?> createRequest(
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<?> createRequest(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
         String newGroupId = body.get("newGroupId");
-        String reason     = body.getOrDefault("reason", "");
+        String reason = body.getOrDefault("reason", "");
 
         if (newGroupId == null || newGroupId.isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "newGroupId é obrigatório"));
@@ -53,9 +46,8 @@ public class GroupChangeRequestController {
         User client = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
         if (client == null) return ResponseEntity.notFound().build();
 
-        var newGroup     = groupRepository.findById(newGroupId).orElse(null);
-        var currentGroup = client.getGroupId() != null
-                ? groupRepository.findById(client.getGroupId()).orElse(null) : null;
+        var newGroup = groupRepository.findById(newGroupId).orElse(null);
+        var currentGroup = client.getGroupId() != null ? groupRepository.findById(client.getGroupId()).orElse(null) : null;
 
         GroupChangeRequest request = new GroupChangeRequest();
         request.setClientId(client.getId());
@@ -74,12 +66,7 @@ public class GroupChangeRequestController {
         // Notifica todos os operadores via push FCM
         userRepository.findByRole("OPERATOR").forEach(operator -> {
             if (operator.getFcmToken() != null && !operator.getFcmToken().isBlank()) {
-                firebasePushService.sendGroupChangeRequestPush(
-                        operator.getFcmToken(),
-                        request.getClientName(),
-                        request.getCurrentGroupName(),
-                        request.getRequestedGroupName()
-                );
+                firebasePushService.sendGroupChangeRequestPush(operator.getFcmToken(), request.getClientName(), request.getCurrentGroupName(), request.getRequestedGroupName());
             }
         });
 
@@ -88,20 +75,14 @@ public class GroupChangeRequestController {
 
     // Operador — listar todas
     @GetMapping
-    public ResponseEntity<List<GroupChangeRequest>> listAll(
-            @RequestParam(required = false) String status
-    ) {
-        if (status != null)
-            return ResponseEntity.ok(requestRepository.findByStatusOrderByCreatedAtDesc(status));
+    public ResponseEntity<List<GroupChangeRequest>> listAll(@RequestParam(required = false) String status) {
+        if (status != null) return ResponseEntity.ok(requestRepository.findByStatusOrderByCreatedAtDesc(status));
         return ResponseEntity.ok(requestRepository.findAllByOrderByCreatedAtDesc());
     }
 
     // Operador — aprovar
     @PostMapping("/{id}/approve")
-    public ResponseEntity<?> approve(
-            @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<?> approve(@PathVariable String id, @AuthenticationPrincipal UserDetails userDetails) {
         return requestRepository.findById(id).map(req -> {
             userRepository.findById(req.getClientId()).ifPresent(client -> {
                 client.setGroupId(req.getRequestedGroupId());
@@ -113,9 +94,7 @@ public class GroupChangeRequestController {
             req.setReviewedAt(LocalDateTime.now());
             requestRepository.save(req);
 
-            auditService.log("UPDATE", "GroupChangeRequest", id, userDetails.getUsername(),
-                    "Solicitação de " + req.getClientName() + " aprovada: " +
-                            req.getCurrentGroupName() + " → " + req.getRequestedGroupName());
+            auditService.log("UPDATE", "GroupChangeRequest", id, userDetails.getUsername(), "Solicitação de " + req.getClientName() + " aprovada: " + req.getCurrentGroupName() + " → " + req.getRequestedGroupName());
 
             return ResponseEntity.ok(Map.of("message", "Solicitação aprovada"));
         }).orElse(ResponseEntity.notFound().build());
@@ -123,18 +102,14 @@ public class GroupChangeRequestController {
 
     // Operador — rejeitar
     @PostMapping("/{id}/reject")
-    public ResponseEntity<?> reject(
-            @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<?> reject(@PathVariable String id, @AuthenticationPrincipal UserDetails userDetails) {
         return requestRepository.findById(id).map(req -> {
             req.setStatus("REJECTED");
             req.setReviewedBy(userDetails.getUsername());
             req.setReviewedAt(LocalDateTime.now());
             requestRepository.save(req);
 
-            auditService.log("UPDATE", "GroupChangeRequest", id, userDetails.getUsername(),
-                    "Solicitação de " + req.getClientName() + " rejeitada.");
+            auditService.log("UPDATE", "GroupChangeRequest", id, userDetails.getUsername(), "Solicitação de " + req.getClientName() + " rejeitada.");
 
             return ResponseEntity.ok(Map.of("message", "Solicitação rejeitada"));
         }).orElse(ResponseEntity.notFound().build());
