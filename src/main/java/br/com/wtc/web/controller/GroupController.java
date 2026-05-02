@@ -19,10 +19,7 @@ public class GroupController {
 
     // GET /api/groups — lista todos os grupos
     @GetMapping
-    public ResponseEntity<List<Group>> getAllGroups(
-            @RequestParam(required = false) String divisionId,
-            @RequestParam(required = false) String clientId
-    ) {
+    public ResponseEntity<List<Group>> getAllGroups(@RequestParam(required = false) String divisionId, @RequestParam(required = false) String clientId) {
         if (divisionId != null) {
             return ResponseEntity.ok(groupService.getGroupsByDivision(divisionId));
         }
@@ -46,28 +43,19 @@ public class GroupController {
 
     // PUT /api/groups/{id} — atualiza grupo
     @PutMapping("/{id}")
-    public ResponseEntity<Group> updateGroup(
-            @PathVariable String id,
-            @RequestBody Group group
-    ) {
+    public ResponseEntity<Group> updateGroup(@PathVariable String id, @RequestBody Group group) {
         return ResponseEntity.ok(groupService.updateGroup(id, group));
     }
 
     // POST /api/groups/{id}/members/{clientId} — adiciona cliente ao grupo
     @PostMapping("/{id}/members/{clientId}")
-    public ResponseEntity<Group> addMember(
-            @PathVariable String id,
-            @PathVariable String clientId
-    ) {
+    public ResponseEntity<Group> addMember(@PathVariable String id, @PathVariable String clientId) {
         return ResponseEntity.ok(groupService.addClientToGroup(id, clientId));
     }
 
     // DELETE /api/groups/{id}/members/{clientId} — remove cliente do grupo
     @DeleteMapping("/{id}/members/{clientId}")
-    public ResponseEntity<Group> removeMember(
-            @PathVariable String id,
-            @PathVariable String clientId
-    ) {
+    public ResponseEntity<Group> removeMember(@PathVariable String id, @PathVariable String clientId) {
         return ResponseEntity.ok(groupService.removeClientFromGroup(id, clientId));
     }
 }
