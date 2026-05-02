@@ -7,20 +7,14 @@ import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
 
-        @NotBlank(message = "Nome é obrigatório")
-        String name,
+        @NotBlank(message = "Nome é obrigatório") String name,
 
-        @NotBlank(message = "E-mail é obrigatório")
-        @Email(message = "E-mail inválido")
-        String email,
+        @NotBlank(message = "E-mail é obrigatório") @Email(message = "E-mail inválido") String email,
 
-        @NotBlank(message = "Senha é obrigatória")
-        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
-        String password,
+        @NotBlank(message = "Senha é obrigatória") @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres") String password,
 
-        // Só "OPERATOR" ou "CLIENT" são aceitos
-        @NotBlank(message = "Role é obrigatória")
-        @Pattern(regexp = "OPERATOR|CLIENT",
-                message = "Role deve ser OPERATOR ou CLIENT")
-        String role
-) {}
+        @NotBlank(message = "Role é obrigatória") @Pattern(regexp = "OPERATOR|CLIENT", message = "Role deve ser OPERATOR ou CLIENT") String role,
+
+        // Obrigatórios apenas para CLIENT — validação feita no service
+        String cpf, String phone, String company) {
+}
