@@ -11,23 +11,21 @@ import java.util.Optional;
 public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByEmail(String email);
+
     boolean existsByEmail(String email);
 
-    // Busca todos os clientes
     List<User> findByRole(String role);
 
-    // Busca clientes por grupo
     List<User> findByRoleAndGroupId(String role, String groupId);
 
-    // Busca clientes por divisão
     List<User> findByRoleAndDivisionId(String role, String divisionId);
 
-    // Busca clientes por tag
     List<User> findByRoleAndTagsContaining(String role, String tag);
 
-    // Busca clientes por nome parcial
     List<User> findByRoleAndNameContainingIgnoreCase(String role, String name);
 
-    // Busca usuários pelo FCM token — usado para deduplicação ao salvar novo token
     List<User> findAllByFcmToken(String fcmToken);
+
+    // ← necessário para buscar membros do grupo ao enviar push
+    List<User> findByGroupId(String groupId);
 }
