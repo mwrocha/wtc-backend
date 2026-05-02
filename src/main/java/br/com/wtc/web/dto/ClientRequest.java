@@ -7,12 +7,9 @@ import java.util.List;
 
 public record ClientRequest(
 
-        @NotBlank(message = "Nome é obrigatório")
-        String name,
+        @NotBlank(message = "Nome é obrigatório") String name,
 
-        @NotBlank(message = "E-mail é obrigatório")
-        @Email(message = "E-mail inválido")
-        String email,
+        @NotBlank(message = "E-mail é obrigatório") @Email(message = "E-mail inválido") String email,
 
         String phone,
 
@@ -25,5 +22,5 @@ public record ClientRequest(
 
         String divisionId,
 
-        String groupId
-) {}
+        String groupId) {
+}
