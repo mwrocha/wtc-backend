@@ -31,9 +31,12 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+        );
 
-        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> new BusinessException("Usuário não encontrado"));
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
 
         // ── Limpa fcmToken duplicado ──────────────────────────────────
         String currentFcmToken = user.getFcmToken();
@@ -46,7 +49,13 @@ public class AuthService {
             });
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        // ── Gera e salva novo sessionToken ────────────────────────────
+        String sessionToken = UUID.randomUUID().toString();
+        user.setSessionToken(sessionToken);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), sessionToken);
         return new LoginResponse(token, user.getId(), user.getEmail(), user.getName(), user.getRole());
     }
 
