@@ -22,8 +22,7 @@ public class DivisionService {
     }
 
     public Division getDivisionById(String id) {
-        return divisionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Divisão não encontrada: " + id));
+        return divisionRepository.findById(id).orElseThrow(() -> new BusinessException("Divisão não encontrada: " + id));
     }
 
     public Division createDivision(Division division) {
