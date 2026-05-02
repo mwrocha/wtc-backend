@@ -9,22 +9,17 @@ import java.util.Map;
 
 public record CampaignRequest(
 
-        @NotBlank(message = "Título é obrigatório")
-        String title,
+        @NotBlank(message = "Título é obrigatório") String title,
 
-        @NotBlank(message = "Corpo da mensagem é obrigatório")
-        String body,
+        @NotBlank(message = "Corpo da mensagem é obrigatório") String body,
 
         String url,
 
-        List<Message.ActionButton> actions,
-        Map<String, String> actionUrls,
+        List<Message.ActionButton> actions, Map<String, String> actionUrls,
 
         // Segmentação
-        List<String> targetTags,
-        List<String> targetClientIds,
-        String targetGroupId,
-        String targetDivisionId,   // ← novo
+        List<String> targetTags, List<String> targetClientIds, String targetGroupId, String targetDivisionId,
+        // ← novo
 
-        LocalDateTime scheduledAt
-) {}
+        LocalDateTime scheduledAt) {
+}
