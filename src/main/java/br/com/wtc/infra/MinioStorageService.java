@@ -17,9 +17,7 @@ public class MinioStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(MinioStorageService.class);
 
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp",
-            "application/pdf"   // ← PDF adicionado
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"   // ← PDF adicionado
     );
 
     // Aumentado para 10 MB para comportar PDFs
@@ -44,27 +42,18 @@ public class MinioStorageService {
     public String upload(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException(
-                    "Tipo de arquivo não permitido. Aceitos: JPEG, PNG, GIF, WEBP, PDF.");
+            throw new IllegalArgumentException("Tipo de arquivo não permitido. Aceitos: JPEG, PNG, GIF, WEBP, PDF.");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException(
-                    "Arquivo muito grande. Tamanho máximo: 10 MB.");
+            throw new IllegalArgumentException("Arquivo muito grande. Tamanho máximo: 10 MB.");
         }
 
-        String extension  = getExtension(contentType);
+        String extension = getExtension(contentType);
         String objectName = "images/" + UUID.randomUUID() + extension;
 
         try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucket)
-                            .object(objectName)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(contentType)
-                            .build()
-            );
+            minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(objectName).stream(file.getInputStream(), file.getSize(), -1).contentType(contentType).build());
             log.info("Upload concluído: {}", objectName);
             return objectName;
 
@@ -79,14 +68,7 @@ public class MinioStorageService {
      */
     public String generatePresignedUrl(String objectName) {
         try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucket)
-                            .object(objectName)
-                            .expiry(presignedExpiryMinutes, TimeUnit.MINUTES)
-                            .build()
-            );
+            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().method(Method.GET).bucket(bucket).object(objectName).expiry(presignedExpiryMinutes, TimeUnit.MINUTES).build());
         } catch (Exception e) {
             log.error("Erro ao gerar URL pré-assinada: {}", e.getMessage());
             throw new RuntimeException("Falha ao gerar URL de acesso ao arquivo.", e);
@@ -98,12 +80,7 @@ public class MinioStorageService {
      */
     public void delete(String objectName) {
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucket)
-                            .object(objectName)
-                            .build()
-            );
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectName).build());
             log.info("Objeto removido: {}", objectName);
         } catch (Exception e) {
             log.error("Erro ao remover objeto MinIO: {}", e.getMessage());
@@ -112,12 +89,12 @@ public class MinioStorageService {
 
     private String getExtension(String contentType) {
         return switch (contentType) {
-            case "image/jpeg"     -> ".jpg";
-            case "image/png"      -> ".png";
-            case "image/gif"      -> ".gif";
-            case "image/webp"     -> ".webp";
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/gif" -> ".gif";
+            case "image/webp" -> ".webp";
             case "application/pdf" -> ".pdf";
-            default               -> "";
+            default -> "";
         };
     }
 }
