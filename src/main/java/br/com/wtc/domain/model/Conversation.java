@@ -40,27 +40,80 @@ public class Conversation {
         CLOSED       // Encerrada
     }
 
-    public Conversation() {}
+    public Conversation() {
+    }
 
     // ── Getters ───────────────────────────────────────────────────────────────
-    public String getId()                        { return id; }
-    public String getConversationId()            { return conversationId; }
-    public String getClientEmail()               { return clientEmail; }
-    public String getAssignedOperatorEmail()     { return assignedOperatorEmail; }
-    public ConversationStatus getStatus()        { return status; }
-    public String getLastMessagePreview()        { return lastMessagePreview; }
-    public LocalDateTime getCreatedAt()          { return createdAt; }
-    public LocalDateTime getUpdatedAt()          { return updatedAt; }
-    public LocalDateTime getAssumedAt()          { return assumedAt; }
+    public String getId() {
+        return id;
+    }
+
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public String getClientEmail() {
+        return clientEmail;
+    }
+
+    public String getAssignedOperatorEmail() {
+        return assignedOperatorEmail;
+    }
+
+    public ConversationStatus getStatus() {
+        return status;
+    }
+
+    public String getLastMessagePreview() {
+        return lastMessagePreview;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public LocalDateTime getAssumedAt() {
+        return assumedAt;
+    }
 
     // ── Setters ───────────────────────────────────────────────────────────────
-    public void setId(String id)                                    { this.id = id; }
-    public void setConversationId(String conversationId)            { this.conversationId = conversationId; }
-    public void setClientEmail(String clientEmail)                  { this.clientEmail = clientEmail; }
-    public void setAssignedOperatorEmail(String email)              { this.assignedOperatorEmail = email; }
-    public void setStatus(ConversationStatus status)                { this.status = status; }
-    public void setLastMessagePreview(String lastMessagePreview)    { this.lastMessagePreview = lastMessagePreview; }
-    public void setCreatedAt(LocalDateTime createdAt)               { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt)               { this.updatedAt = updatedAt; }
-    public void setAssumedAt(LocalDateTime assumedAt)               { this.assumedAt = assumedAt; }
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
+    }
+
+    public void setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
+    }
+
+    public void setAssignedOperatorEmail(String email) {
+        this.assignedOperatorEmail = email;
+    }
+
+    public void setStatus(ConversationStatus status) {
+        this.status = status;
+    }
+
+    public void setLastMessagePreview(String lastMessagePreview) {
+        this.lastMessagePreview = lastMessagePreview;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setAssumedAt(LocalDateTime assumedAt) {
+        this.assumedAt = assumedAt;
+    }
 }
