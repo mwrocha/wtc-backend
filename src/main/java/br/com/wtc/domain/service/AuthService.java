@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -22,10 +23,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtUtil jwtUtil) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -33,18 +31,11 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.email(), request.password()
-                )
-        );
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
+        User user = userRepository.findByEmail(request.email()).orElseThrow(() -> new BusinessException("Usuário não encontrado"));
 
-        // ── Limpar FCM token de outros usuários que o possuam ────────────────
-        // Garante que notificações não sejam entregues ao aparelho errado
-        // quando o mesmo dispositivo foi usado por mais de um usuário
+        // ── Limpa fcmToken duplicado ──────────────────────────────────
         String currentFcmToken = user.getFcmToken();
         if (currentFcmToken != null && !currentFcmToken.isBlank()) {
             userRepository.findAllByFcmToken(currentFcmToken).forEach(other -> {
@@ -64,19 +55,21 @@ public class AuthService {
             throw new BusinessException("E-mail já cadastrado: " + request.email());
         }
 
-        User user = User.builder()
-                .name(request.name())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .role(request.role())
-                .active(true)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        if ("CLIENT".equals(request.role())) {
+            if (request.cpf() == null || request.cpf().isBlank())
+                throw new BusinessException("CPF é obrigatório para clientes.");
+            if (request.phone() == null || request.phone().isBlank())
+                throw new BusinessException("Telefone é obrigatório para clientes.");
+        }
+
+        // ── Gera sessionToken no registro ─────────────────────────────
+        String sessionToken = UUID.randomUUID().toString();
+
+        User user = User.builder().name(request.name()).email(request.email()).password(passwordEncoder.encode(request.password())).role(request.role()).phone(request.phone()).cpf(request.cpf()).company(request.company()).sessionToken(sessionToken).active(true).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), sessionToken);
         return new LoginResponse(token, user.getId(), user.getEmail(), user.getName(), user.getRole());
     }
 }
