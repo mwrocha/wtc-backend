@@ -37,10 +37,7 @@ public class DivisionController {
 
     // PUT /api/divisions/{id} — atualiza divisão
     @PutMapping("/{id}")
-    public ResponseEntity<Division> updateDivision(
-            @PathVariable String id,
-            @RequestBody Division division
-    ) {
+    public ResponseEntity<Division> updateDivision(@PathVariable String id, @RequestBody Division division) {
         return ResponseEntity.ok(divisionService.updateDivision(id, division));
     }
 
