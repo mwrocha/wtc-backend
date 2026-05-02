@@ -22,9 +22,7 @@ public class FcmTokenController {
     // POST /api/users/fcm-token
     // Salva o FCM token do usuário autenticado
     @PostMapping("/fcm-token")
-    public ResponseEntity<Void> updateFcmToken(
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Void> updateFcmToken(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
 
         String token = body.get("token");
         if (token == null || token.isBlank()) {
