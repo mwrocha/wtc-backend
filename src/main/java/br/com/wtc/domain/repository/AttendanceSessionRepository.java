@@ -15,28 +15,14 @@ public interface AttendanceSessionRepository extends MongoRepository<AttendanceS
     List<AttendanceSession> findByOperatorEmail(String operatorEmail);
 
     // Sessão IN_PROGRESS de uma conversa específica (para encerrar)
-    Optional<AttendanceSession> findByConversationIdAndStatus(
-            String conversationId,
-            AttendanceSession.SessionStatus status
-    );
+    Optional<AttendanceSession> findByConversationIdAndStatus(String conversationId, AttendanceSession.SessionStatus status);
 
     // Sessões encerradas de um operador em um período
-    List<AttendanceSession> findByOperatorEmailAndStatusAndClosedAtBetween(
-            String operatorEmail,
-            AttendanceSession.SessionStatus status,
-            LocalDateTime from,
-            LocalDateTime to
-    );
+    List<AttendanceSession> findByOperatorEmailAndStatusAndClosedAtBetween(String operatorEmail, AttendanceSession.SessionStatus status, LocalDateTime from, LocalDateTime to);
 
     // Sessões encerradas de um operador (todas)
-    List<AttendanceSession> findByOperatorEmailAndStatus(
-            String operatorEmail,
-            AttendanceSession.SessionStatus status
-    );
+    List<AttendanceSession> findByOperatorEmailAndStatus(String operatorEmail, AttendanceSession.SessionStatus status);
 
     // Sessões encerradas de um cliente (para avaliação)
-    List<AttendanceSession> findByClientEmailAndStatus(
-            String clientEmail,
-            AttendanceSession.SessionStatus status
-    );
+    List<AttendanceSession> findByClientEmailAndStatus(String clientEmail, AttendanceSession.SessionStatus status);
 }
