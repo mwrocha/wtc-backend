@@ -3,6 +3,7 @@ package br.com.wtc.domain.service;
 import br.com.wtc.domain.model.AuditLog;
 import br.com.wtc.domain.repository.AuditLogRepository;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -14,15 +15,12 @@ public class AuditService {
         this.auditLogRepository = auditLogRepository;
     }
 
-    public void log(String action, String entity, String entityId,
-                    String performedBy, String description) {
+    public void log(String action, String entity, String entityId, String performedBy, String description) {
         AuditLog log = new AuditLog(action, entity, entityId, performedBy, description);
         auditLogRepository.save(log);
     }
 
-    public void log(String action, String entity, String entityId,
-                    String performedBy, String description,
-                    Object before, Object after) {
+    public void log(String action, String entity, String entityId, String performedBy, String description, Object before, Object after) {
         AuditLog log = new AuditLog(action, entity, entityId, performedBy, description);
         log.setBefore(before);
         log.setAfter(after);
