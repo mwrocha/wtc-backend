@@ -19,22 +19,13 @@ public class NoteController {
 
     // PUT /api/notes/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<Note> updateNote(
-            @PathVariable String id,
-            @RequestBody java.util.Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        return ResponseEntity.ok(
-                noteService.update(id, userDetails.getUsername(), body.get("content"))
-        );
+    public ResponseEntity<Note> updateNote(@PathVariable String id, @RequestBody java.util.Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(noteService.update(id, userDetails.getUsername(), body.get("content")));
     }
 
     // DELETE /api/notes/{id}
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNote(
-            @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<Void> deleteNote(@PathVariable String id, @AuthenticationPrincipal UserDetails userDetails) {
         noteService.delete(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
