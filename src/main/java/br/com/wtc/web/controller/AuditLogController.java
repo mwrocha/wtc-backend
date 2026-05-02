@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -26,9 +27,7 @@ public class AuditLogController {
 
     // Logs do próprio operador logado
     @GetMapping("/me")
-    public ResponseEntity<List<AuditLog>> getMyLogs(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<List<AuditLog>> getMyLogs(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(auditService.findByOperator(userDetails.getUsername()));
     }
 
@@ -40,10 +39,7 @@ public class AuditLogController {
 
     // Logs de um item específico
     @GetMapping("/entity/{entity}/{entityId}")
-    public ResponseEntity<List<AuditLog>> getByEntityAndId(
-            @PathVariable String entity,
-            @PathVariable String entityId
-    ) {
+    public ResponseEntity<List<AuditLog>> getByEntityAndId(@PathVariable String entity, @PathVariable String entityId) {
         return ResponseEntity.ok(auditService.findByEntityAndId(entity, entityId));
     }
 }
