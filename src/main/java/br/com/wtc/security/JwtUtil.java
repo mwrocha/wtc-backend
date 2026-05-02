@@ -17,35 +17,35 @@ public class JwtUtil {
     private String secret;
 
     @Value("${jwt.expiration}")
-    private long expiration; // em milissegundos (ex: 86400000 = 24h)
+    private long expiration;
 
-    // ── Gera a chave a partir do segredo no application.yml ───────────
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // ── Gera um token JWT para o usuário autenticado ───────────────────
-    public String generateToken(String email, String role) {
-        return Jwts.builder()
-                .subject(email)
-                .claim("role", role)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
-                .compact();
+    // ── Gera token com sessionToken embutido ──────────────────────────
+    public String generateToken(String email, String role, String sessionToken) {
+        return Jwts.builder().subject(email).claim("role", role).claim("sessionToken", sessionToken).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + expiration)).signWith(getSigningKey()).compact();
     }
 
-    // ── Extrai o e-mail (subject) do token ────────────────────────────
+    // ── Mantém assinatura antiga para compatibilidade interna ─────────
+    public String generateToken(String email, String role) {
+        return generateToken(email, role, java.util.UUID.randomUUID().toString());
+    }
+
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // ── Extrai a role do token ─────────────────────────────────────────
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
 
-    // ── Valida se o token é válido e não expirou ──────────────────────
+    // ── Extrai sessionToken do payload ────────────────────────────────
+    public String extractSessionToken(String token) {
+        return extractAllClaims(token).get("sessionToken", String.class);
+    }
+
     public boolean isTokenValid(String token, String email) {
         try {
             String extractedEmail = extractEmail(token);
@@ -55,17 +55,11 @@ public class JwtUtil {
         }
     }
 
-    // ── Verifica expiração ────────────────────────────────────────────
     private boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
-    // ── Extrai todos os claims do token ───────────────────────────────
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
     }
 }
