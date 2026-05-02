@@ -22,22 +22,18 @@ public class ConversationService {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationService.class);
 
-    private final ConversationRepository      conversationRepository;
-    private final UserRepository              userRepository;
+    private final ConversationRepository conversationRepository;
+    private final UserRepository userRepository;
     private final AttendanceSessionRepository sessionRepository;
 
-    public ConversationService(ConversationRepository conversationRepository,
-                               UserRepository userRepository,
-                               AttendanceSessionRepository sessionRepository) {
+    public ConversationService(ConversationRepository conversationRepository, UserRepository userRepository, AttendanceSessionRepository sessionRepository) {
         this.conversationRepository = conversationRepository;
-        this.userRepository         = userRepository;
-        this.sessionRepository      = sessionRepository;
+        this.userRepository = userRepository;
+        this.sessionRepository = sessionRepository;
     }
 
-    public void onClientMessageSent(String conversationId, String clientEmail,
-                                    String messagePreview) {
-        Optional<Conversation> existing = conversationRepository
-                .findByConversationId(conversationId);
+    public void onClientMessageSent(String conversationId, String clientEmail, String messagePreview) {
+        Optional<Conversation> existing = conversationRepository.findByConversationId(conversationId);
 
         if (existing.isPresent()) {
             Conversation conv = existing.get();
@@ -68,13 +64,10 @@ public class ConversationService {
      * Cria uma nova AttendanceSession para rastrear esta sessão.
      */
     public Conversation assumeConversation(String conversationId, String operatorEmail) {
-        Conversation conv = conversationRepository
-                .findByConversationId(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversa não encontrada: " + conversationId));
+        Conversation conv = conversationRepository.findByConversationId(conversationId).orElseThrow(() -> new RuntimeException("Conversa não encontrada: " + conversationId));
 
         if (conv.getStatus() == Conversation.ConversationStatus.IN_PROGRESS) {
-            throw new RuntimeException("Conversa já está sendo atendida por "
-                    + conv.getAssignedOperatorEmail());
+            throw new RuntimeException("Conversa já está sendo atendida por " + conv.getAssignedOperatorEmail());
         }
 
         conv.setStatus(Conversation.ConversationStatus.IN_PROGRESS);
@@ -105,9 +98,7 @@ public class ConversationService {
      * Fecha a AttendanceSession correspondente.
      */
     public Conversation closeConversation(String conversationId, String operatorEmail) {
-        Conversation conv = conversationRepository
-                .findByConversationId(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversa não encontrada: " + conversationId));
+        Conversation conv = conversationRepository.findByConversationId(conversationId).orElseThrow(() -> new RuntimeException("Conversa não encontrada: " + conversationId));
 
         conv.setStatus(Conversation.ConversationStatus.CLOSED);
         conv.setUpdatedAt(LocalDateTime.now());
@@ -116,16 +107,12 @@ public class ConversationService {
 
         // ── Fecha a sessão de atendimento ─────────────────────────────────────
         try {
-            sessionRepository
-                    .findByConversationIdAndStatus(
-                            conversationId,
-                            AttendanceSession.SessionStatus.IN_PROGRESS)
-                    .ifPresent(session -> {
-                        session.setStatus(AttendanceSession.SessionStatus.CLOSED);
-                        session.setClosedAt(LocalDateTime.now());
-                        sessionRepository.save(session);
-                        log.info("Sessão encerrada: {} → {}", operatorEmail, conversationId);
-                    });
+            sessionRepository.findByConversationIdAndStatus(conversationId, AttendanceSession.SessionStatus.IN_PROGRESS).ifPresent(session -> {
+                session.setStatus(AttendanceSession.SessionStatus.CLOSED);
+                session.setClosedAt(LocalDateTime.now());
+                sessionRepository.save(session);
+                log.info("Sessão encerrada: {} → {}", operatorEmail, conversationId);
+            });
         } catch (Exception e) {
             log.warn("Falha ao encerrar sessão (não bloqueia): {}", e.getMessage());
         }
@@ -134,54 +121,43 @@ public class ConversationService {
     }
 
     public List<Map<String, Object>> getPendingConversations() {
-        List<Conversation> pending = conversationRepository
-                .findByStatus(Conversation.ConversationStatus.OPEN);
+        List<Conversation> pending = conversationRepository.findByStatus(Conversation.ConversationStatus.OPEN);
 
         return pending.stream().map(conv -> {
             var clientOpt = userRepository.findByEmail(conv.getClientEmail());
             String clientName = clientOpt.map(u -> u.getName()).orElse(conv.getClientEmail());
-            String clientId   = clientOpt.map(u -> u.getId()).orElse("");
+            String clientId = clientOpt.map(u -> u.getId()).orElse("");
 
             Map<String, Object> result = new HashMap<>();
-            result.put("conversationId",     conv.getConversationId());
-            result.put("clientEmail",        conv.getClientEmail());
-            result.put("clientName",         clientName);
-            result.put("clientId",           clientId);
-            result.put("lastMessagePreview", conv.getLastMessagePreview() != null
-                    ? conv.getLastMessagePreview() : "");
-            result.put("status",             conv.getStatus().name());
-            result.put("createdAt",          conv.getCreatedAt() != null
-                    ? conv.getCreatedAt().toString() : "");
-            result.put("updatedAt",          conv.getUpdatedAt() != null
-                    ? conv.getUpdatedAt().toString() : "");
+            result.put("conversationId", conv.getConversationId());
+            result.put("clientEmail", conv.getClientEmail());
+            result.put("clientName", clientName);
+            result.put("clientId", clientId);
+            result.put("lastMessagePreview", conv.getLastMessagePreview() != null ? conv.getLastMessagePreview() : "");
+            result.put("status", conv.getStatus().name());
+            result.put("createdAt", conv.getCreatedAt() != null ? conv.getCreatedAt().toString() : "");
+            result.put("updatedAt", conv.getUpdatedAt() != null ? conv.getUpdatedAt().toString() : "");
             return result;
         }).toList();
     }
 
     public List<Map<String, Object>> getMyActiveConversations(String operatorEmail) {
-        List<Conversation> active = conversationRepository
-                .findByAssignedOperatorEmail(operatorEmail)
-                .stream()
-                .filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS)
-                .toList();
+        List<Conversation> active = conversationRepository.findByAssignedOperatorEmail(operatorEmail).stream().filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS).toList();
 
         return active.stream().map(conv -> {
             var clientOpt = userRepository.findByEmail(conv.getClientEmail());
             String clientName = clientOpt.map(u -> u.getName()).orElse(conv.getClientEmail());
-            String clientId   = clientOpt.map(u -> u.getId()).orElse("");
+            String clientId = clientOpt.map(u -> u.getId()).orElse("");
 
             Map<String, Object> result = new HashMap<>();
-            result.put("conversationId",     conv.getConversationId());
-            result.put("clientEmail",        conv.getClientEmail());
-            result.put("clientName",         clientName);
-            result.put("clientId",           clientId);
-            result.put("lastMessagePreview", conv.getLastMessagePreview() != null
-                    ? conv.getLastMessagePreview() : "");
-            result.put("status",             conv.getStatus().name());
-            result.put("assumedAt",          conv.getAssumedAt() != null
-                    ? conv.getAssumedAt().toString() : "");
-            result.put("updatedAt",          conv.getUpdatedAt() != null
-                    ? conv.getUpdatedAt().toString() : "");
+            result.put("conversationId", conv.getConversationId());
+            result.put("clientEmail", conv.getClientEmail());
+            result.put("clientName", clientName);
+            result.put("clientId", clientId);
+            result.put("lastMessagePreview", conv.getLastMessagePreview() != null ? conv.getLastMessagePreview() : "");
+            result.put("status", conv.getStatus().name());
+            result.put("assumedAt", conv.getAssumedAt() != null ? conv.getAssumedAt().toString() : "");
+            result.put("updatedAt", conv.getUpdatedAt() != null ? conv.getUpdatedAt().toString() : "");
             return result;
         }).toList();
     }
@@ -191,33 +167,20 @@ public class ConversationService {
      * Cada assume+close = 1 sessão, independente de reaberturas.
      */
     public Map<String, Long> getMyStats(String operatorEmail) {
-        long active = conversationRepository
-                .findByAssignedOperatorEmail(operatorEmail)
-                .stream()
-                .filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS)
-                .count();
+        long active = conversationRepository.findByAssignedOperatorEmail(operatorEmail).stream().filter(c -> c.getStatus() == Conversation.ConversationStatus.IN_PROGRESS).count();
 
-        LocalDate today     = LocalDate.now();
+        LocalDate today = LocalDate.now();
         YearMonth thisMonth = YearMonth.now();
         LocalDateTime monthStart = thisMonth.atDay(1).atStartOfDay();
-        LocalDateTime monthEnd   = thisMonth.atEndOfMonth().atTime(23, 59, 59);
+        LocalDateTime monthEnd = thisMonth.atEndOfMonth().atTime(23, 59, 59);
 
-        List<AttendanceSession> closedThisMonth = sessionRepository
-                .findByOperatorEmailAndStatusAndClosedAtBetween(
-                        operatorEmail,
-                        AttendanceSession.SessionStatus.CLOSED,
-                        monthStart,
-                        monthEnd
-                );
+        List<AttendanceSession> closedThisMonth = sessionRepository.findByOperatorEmailAndStatusAndClosedAtBetween(operatorEmail, AttendanceSession.SessionStatus.CLOSED, monthStart, monthEnd);
 
-        long closedToday = closedThisMonth.stream()
-                .filter(s -> s.getClosedAt() != null
-                        && s.getClosedAt().toLocalDate().equals(today))
-                .count();
+        long closedToday = closedThisMonth.stream().filter(s -> s.getClosedAt() != null && s.getClosedAt().toLocalDate().equals(today)).count();
 
         Map<String, Long> stats = new HashMap<>();
-        stats.put("active",    active);
-        stats.put("today",     closedToday);
+        stats.put("active", active);
+        stats.put("today", closedToday);
         stats.put("thisMonth", (long) closedThisMonth.size());
         return stats;
     }
@@ -227,32 +190,21 @@ public class ConversationService {
      * Usada na AttendanceQueueScreen seção "Encerrados".
      */
     public List<Map<String, Object>> getMyClosedSessions(String operatorEmail) {
-        return sessionRepository
-                .findByOperatorEmailAndStatus(
-                        operatorEmail,
-                        AttendanceSession.SessionStatus.CLOSED)
-                .stream()
-                .filter(s -> s.getClosedAt() != null)
-                .sorted((a, b) -> b.getClosedAt().compareTo(a.getClosedAt()))
-                .limit(30)
-                .map(session -> {
-                    var clientOpt = userRepository.findByEmail(session.getClientEmail());
-                    String clientName = clientOpt.map(u -> u.getName()).orElse(session.getClientEmail());
-                    String clientId   = clientOpt.map(u -> u.getId()).orElse("");
+        return sessionRepository.findByOperatorEmailAndStatus(operatorEmail, AttendanceSession.SessionStatus.CLOSED).stream().filter(s -> s.getClosedAt() != null).sorted((a, b) -> b.getClosedAt().compareTo(a.getClosedAt())).limit(30).map(session -> {
+            var clientOpt = userRepository.findByEmail(session.getClientEmail());
+            String clientName = clientOpt.map(u -> u.getName()).orElse(session.getClientEmail());
+            String clientId = clientOpt.map(u -> u.getId()).orElse("");
 
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("sessionId",      session.getId());
-                    result.put("conversationId", session.getConversationId());
-                    result.put("clientEmail",    session.getClientEmail());
-                    result.put("clientName",     clientName);
-                    result.put("clientId",       clientId);
-                    result.put("assumedAt",      session.getAssumedAt() != null
-                            ? session.getAssumedAt().toString() : "");
-                    result.put("closedAt",       session.getClosedAt() != null
-                            ? session.getClosedAt().toString() : "");
-                    return result;
-                })
-                .toList();
+            Map<String, Object> result = new HashMap<>();
+            result.put("sessionId", session.getId());
+            result.put("conversationId", session.getConversationId());
+            result.put("clientEmail", session.getClientEmail());
+            result.put("clientName", clientName);
+            result.put("clientId", clientId);
+            result.put("assumedAt", session.getAssumedAt() != null ? session.getAssumedAt().toString() : "");
+            result.put("closedAt", session.getClosedAt() != null ? session.getClosedAt().toString() : "");
+            return result;
+        }).toList();
     }
 
     public long countPending() {
