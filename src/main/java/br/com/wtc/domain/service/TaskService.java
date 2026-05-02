@@ -4,6 +4,7 @@ import br.com.wtc.web.dto.TaskRequest;
 import br.com.wtc.domain.model.Task;
 import br.com.wtc.domain.repository.TaskRepository;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -42,8 +43,7 @@ public class TaskService {
     }
 
     public Task updateStatus(String taskId, String status, String operatorId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
         if (!task.getOperatorId().equals(operatorId)) {
             throw new RuntimeException("Sem permissão para atualizar esta tarefa");
         }
@@ -53,24 +53,22 @@ public class TaskService {
     }
 
     public Task updateTask(String taskId, TaskRequest request, String operatorId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
         if (!task.getOperatorId().equals(operatorId)) {
             throw new RuntimeException("Sem permissão");
         }
-        if (request.getTitle()       != null) task.setTitle(request.getTitle());
+        if (request.getTitle() != null) task.setTitle(request.getTitle());
         if (request.getDescription() != null) task.setDescription(request.getDescription());
-        if (request.getCategory()    != null) task.setCategory(request.getCategory());
-        if (request.getPriority()    != null) task.setPriority(request.getPriority());
-        if (request.getStatus()      != null) task.setStatus(request.getStatus());
-        if (request.getDueDate()     != null) task.setDueDate(request.getDueDate());
+        if (request.getCategory() != null) task.setCategory(request.getCategory());
+        if (request.getPriority() != null) task.setPriority(request.getPriority());
+        if (request.getStatus() != null) task.setStatus(request.getStatus());
+        if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
         task.setUpdatedAt(LocalDateTime.now());
         return taskRepository.save(task);
     }
 
     public void deleteTask(String taskId, String operatorId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Tarefa não encontrada"));
         if (!task.getOperatorId().equals(operatorId)) {
             throw new RuntimeException("Sem permissão");
         }
