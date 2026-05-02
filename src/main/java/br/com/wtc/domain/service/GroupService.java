@@ -22,8 +22,7 @@ public class GroupService {
 
     // Busca grupo por ID
     public Group getGroupById(String id) {
-        return groupRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Grupo não encontrado: " + id));
+        return groupRepository.findById(id).orElseThrow(() -> new RuntimeException("Grupo não encontrado: " + id));
     }
 
     // Lista grupos de uma divisão específica
