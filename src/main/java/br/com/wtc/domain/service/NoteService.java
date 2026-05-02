@@ -16,8 +16,7 @@ public class NoteService {
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;  // usa users em vez de clients
 
-    public NoteService(NoteRepository noteRepository,
-                       UserRepository userRepository) {
+    public NoteService(NoteRepository noteRepository, UserRepository userRepository) {
         this.noteRepository = noteRepository;
         this.userRepository = userRepository;
     }
@@ -29,13 +28,7 @@ public class NoteService {
         if (content == null || content.isBlank()) {
             throw new BusinessException("Conteúdo da anotação é obrigatório");
         }
-        Note note = Note.builder()
-                .clientId(clientId)
-                .operatorId(operatorId)
-                .content(content)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        Note note = Note.builder().clientId(clientId).operatorId(operatorId).content(content).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
         return noteRepository.save(note);
     }
 
@@ -47,8 +40,7 @@ public class NoteService {
     }
 
     public Note update(String noteId, String operatorId, String content) {
-        Note note = noteRepository.findById(noteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Anotação", noteId));
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new ResourceNotFoundException("Anotação", noteId));
         if (!note.getOperatorId().equals(operatorId)) {
             throw new BusinessException("Você não tem permissão para editar esta anotação");
         }
@@ -58,8 +50,7 @@ public class NoteService {
     }
 
     public void delete(String noteId, String operatorId) {
-        Note note = noteRepository.findById(noteId)
-                .orElseThrow(() -> new ResourceNotFoundException("Anotação", noteId));
+        Note note = noteRepository.findById(noteId).orElseThrow(() -> new ResourceNotFoundException("Anotação", noteId));
         if (!note.getOperatorId().equals(operatorId)) {
             throw new BusinessException("Você não tem permissão para deletar esta anotação");
         }
