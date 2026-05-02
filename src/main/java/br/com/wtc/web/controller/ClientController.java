@@ -26,15 +26,10 @@ public class ClientController {
 
     // GET /api/clients — lista todos com filtros opcionais
     @GetMapping
-    public ResponseEntity<List<User>> getClients(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false) String groupId,
-            @RequestParam(required = false) String divisionId
-    ) {
-        if (name != null)       return ResponseEntity.ok(clientService.searchByName(name));
-        if (tag != null)        return ResponseEntity.ok(clientService.getClientsByTag(tag));
-        if (groupId != null)    return ResponseEntity.ok(clientService.getClientsByGroup(groupId));
+    public ResponseEntity<List<User>> getClients(@RequestParam(required = false) String name, @RequestParam(required = false) String tag, @RequestParam(required = false) String groupId, @RequestParam(required = false) String divisionId) {
+        if (name != null) return ResponseEntity.ok(clientService.searchByName(name));
+        if (tag != null) return ResponseEntity.ok(clientService.getClientsByTag(tag));
+        if (groupId != null) return ResponseEntity.ok(clientService.getClientsByGroup(groupId));
         if (divisionId != null) return ResponseEntity.ok(clientService.getClientsByDivision(divisionId));
         return ResponseEntity.ok(clientService.getAllClients());
     }
@@ -47,10 +42,7 @@ public class ClientController {
 
     // PUT /api/clients/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateClient(
-            @PathVariable String id,
-            @RequestBody User client
-    ) {
+    public ResponseEntity<User> updateClient(@PathVariable String id, @RequestBody User client) {
         return ResponseEntity.ok(clientService.updateClient(id, client));
     }
 
@@ -62,11 +54,7 @@ public class ClientController {
 
     // POST /api/clients/{id}/notes
     @PostMapping("/{id}/notes")
-    public ResponseEntity<Note> addNote(
-            @PathVariable String id,
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
+    public ResponseEntity<Note> addNote(@PathVariable String id, @RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails userDetails) {
         String operatorId = userDetails.getUsername(); // email do operador logado
         String content = body.get("text");
         return ResponseEntity.ok(noteService.create(id, operatorId, content));
