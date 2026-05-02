@@ -15,36 +15,31 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class CampaignController {
 
-    private final CampaignService   campaignService;
+    private final CampaignService campaignService;
     private final MessageRepository messageRepository;
-    private final UserRepository    userRepository;
+    private final UserRepository userRepository;
 
-    public CampaignController(CampaignService campaignService,
-                              MessageRepository messageRepository,
-                              UserRepository userRepository) {
-        this.campaignService   = campaignService;
+    public CampaignController(CampaignService campaignService, MessageRepository messageRepository, UserRepository userRepository) {
+        this.campaignService = campaignService;
         this.messageRepository = messageRepository;
-        this.userRepository    = userRepository;
+        this.userRepository = userRepository;
     }
 
     // ── Operador ──────────────────────────────────────────────────────
 
     @PostMapping("/campaigns")
-    public ResponseEntity<CampaignResponse> create(
-            @RequestBody @Valid CampaignRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(campaignService.create(request, userDetails.getUsername()));
+    public ResponseEntity<CampaignResponse> create(@RequestBody @Valid CampaignRequest request, @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(campaignService.create(request, userDetails.getUsername()));
     }
 
     @GetMapping("/campaigns")
-    public ResponseEntity<List<CampaignResponse>> list(
-            @RequestParam(required = false) String status) {
+    public ResponseEntity<List<CampaignResponse>> list(@RequestParam(required = false) String status) {
         if (status != null) {
             Campaign.CampaignStatus s = Campaign.CampaignStatus.valueOf(status.toUpperCase());
             return ResponseEntity.ok(campaignService.findByStatus(s));
@@ -58,24 +53,17 @@ public class CampaignController {
     }
 
     @PutMapping("/campaigns/{id}")
-    public ResponseEntity<CampaignResponse> update(
-            @PathVariable String id,
-            @RequestBody @Valid CampaignRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<CampaignResponse> update(@PathVariable String id, @RequestBody @Valid CampaignRequest request, @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(campaignService.update(id, request, userDetails.getUsername()));
     }
 
     @PostMapping("/campaigns/{id}/dispatch")
-    public ResponseEntity<CampaignResponse> dispatch(
-            @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<CampaignResponse> dispatch(@PathVariable String id, @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(campaignService.dispatch(id, userDetails.getUsername()));
     }
 
     @DeleteMapping("/campaigns/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable String id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Void> delete(@PathVariable String id, @AuthenticationPrincipal UserDetails userDetails) {
         campaignService.delete(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
@@ -83,19 +71,14 @@ public class CampaignController {
     // ── Operador — campanhas recebidas por cliente específico ─────────
 
     @GetMapping("/campaigns-received/{clientId}")
-    public ResponseEntity<List<Message>> getCampaignsByClient(
-            @PathVariable String clientId) {
+    public ResponseEntity<List<Message>> getCampaignsByClient(@PathVariable String clientId) {
 
-        List<Message> campaigns = messageRepository
-                .findByRecipientIdAndTypeOrderByCreatedAtDesc(
-                        clientId, Message.MessageType.CAMPAIGN);
+        List<Message> campaigns = messageRepository.findByRecipientIdAndTypeOrderByCreatedAtDesc(clientId, Message.MessageType.CAMPAIGN);
 
         if (campaigns.isEmpty()) {
             var userOpt = userRepository.findById(clientId);
             if (userOpt.isPresent()) {
-                campaigns = messageRepository
-                        .findByRecipientIdAndTypeOrderByCreatedAtDesc(
-                                userOpt.get().getEmail(), Message.MessageType.CAMPAIGN);
+                campaigns = messageRepository.findByRecipientIdAndTypeOrderByCreatedAtDesc(userOpt.get().getEmail(), Message.MessageType.CAMPAIGN);
             }
         }
         return ResponseEntity.ok(campaigns);
@@ -104,22 +87,34 @@ public class CampaignController {
     // ── Cliente — campanhas recebidas ─────────────────────────────────
 
     @GetMapping("/campaigns-received")
-    public ResponseEntity<List<Message>> getMyCampaigns(
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<Message>> getMyCampaigns(@AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
 
-        List<Message> campaigns = messageRepository
-                .findByRecipientIdAndTypeOrderByCreatedAtDesc(
-                        email, Message.MessageType.CAMPAIGN);
+        List<Message> campaigns = messageRepository.findByRecipientIdAndTypeOrderByCreatedAtDesc(email, Message.MessageType.CAMPAIGN);
 
         if (campaigns.isEmpty()) {
             var userOpt = userRepository.findByEmail(email);
             if (userOpt.isPresent()) {
-                campaigns = messageRepository
-                        .findByRecipientIdAndTypeOrderByCreatedAtDesc(
-                                userOpt.get().getId(), Message.MessageType.CAMPAIGN);
+                campaigns = messageRepository.findByRecipientIdAndTypeOrderByCreatedAtDesc(userOpt.get().getId(), Message.MessageType.CAMPAIGN);
             }
         }
         return ResponseEntity.ok(campaigns);
+    }
+
+    // ── Cliente — contagem de campanhas não lidas ─────────────────────
+
+    @GetMapping("/campaigns-received/unread/count")
+    public ResponseEntity<Map<String, Long>> getUnreadCampaignCount(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+
+        long count = messageRepository.countByRecipientIdAndReadFalseAndType(email, Message.MessageType.CAMPAIGN);
+
+        if (count == 0) {
+            var userOpt = userRepository.findByEmail(email);
+            if (userOpt.isPresent()) {
+                count = messageRepository.countByRecipientIdAndReadFalseAndType(userOpt.get().getId(), Message.MessageType.CAMPAIGN);
+            }
+        }
+        return ResponseEntity.ok(Map.of("count", count));
     }
 }
