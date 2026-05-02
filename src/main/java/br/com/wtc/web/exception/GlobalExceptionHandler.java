@@ -17,56 +17,42 @@ public class GlobalExceptionHandler {
 
     // ── Erros de validação (@Valid nos DTOs) ──────────────────────────
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
 
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(error.getField(), error.getDefaultMessage());
         }
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(errorBody("Erro de validação", fieldErrors));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody("Erro de validação", fieldErrors));
     }
 
     // ── Regras de negócio ─────────────────────────────────────────────
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Map<String, Object>> handleBusiness(
-            BusinessException ex) {
+    public ResponseEntity<Map<String, Object>> handleBusiness(BusinessException ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(errorBody(ex.getMessage(), null));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(ex.getMessage(), null));
     }
 
     // ── Recurso não encontrado ─────────────────────────────────────────
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(
-            ResourceNotFoundException ex) {
+    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(errorBody(ex.getMessage(), null));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(ex.getMessage(), null));
     }
 
     // ── Credenciais inválidas no login ────────────────────────────────
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(
-            BadCredentialsException ex) {
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(errorBody("E-mail ou senha incorretos", null));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorBody("E-mail ou senha incorretos", null));
     }
 
     // ── Qualquer outro erro não tratado ───────────────────────────────
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(errorBody("Erro interno do servidor", null));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody("Erro interno do servidor", null));
     }
 
     // ── Corpo padrão de erro ──────────────────────────────────────────
