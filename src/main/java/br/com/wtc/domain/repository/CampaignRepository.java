@@ -18,10 +18,7 @@ public interface CampaignRepository extends MongoRepository<Campaign, String> {
 
     // Campanhas agendadas que ainda não foram enviadas
     // usado pelo SchedulerJob para disparar no horário certo
-    List<Campaign> findByStatusAndScheduledAtBefore(
-            Campaign.CampaignStatus status,
-            LocalDateTime dateTime
-    );
+    List<Campaign> findByStatusAndScheduledAtBefore(Campaign.CampaignStatus status, LocalDateTime dateTime);
 
     // Campanhas que contêm uma tag de segmentação
     List<Campaign> findByTargetTagsContaining(String tag);
