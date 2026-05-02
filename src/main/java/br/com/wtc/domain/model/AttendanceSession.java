@@ -31,27 +31,67 @@ public class AttendanceSession {
     private SessionStatus status = SessionStatus.IN_PROGRESS;
 
     public enum SessionStatus {
-        IN_PROGRESS,
-        CLOSED
+        IN_PROGRESS, CLOSED
     }
 
-    public AttendanceSession() {}
+    public AttendanceSession() {
+    }
 
     // ── Getters ───────────────────────────────────────────────────────────────
-    public String getId()               { return id; }
-    public String getConversationId()   { return conversationId; }
-    public String getClientEmail()      { return clientEmail; }
-    public String getOperatorEmail()    { return operatorEmail; }
-    public LocalDateTime getAssumedAt() { return assumedAt; }
-    public LocalDateTime getClosedAt()  { return closedAt; }
-    public SessionStatus getStatus()    { return status; }
+    public String getId() {
+        return id;
+    }
+
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public String getClientEmail() {
+        return clientEmail;
+    }
+
+    public String getOperatorEmail() {
+        return operatorEmail;
+    }
+
+    public LocalDateTime getAssumedAt() {
+        return assumedAt;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
+    }
+
+    public SessionStatus getStatus() {
+        return status;
+    }
 
     // ── Setters ───────────────────────────────────────────────────────────────
-    public void setId(String id)                         { this.id = id; }
-    public void setConversationId(String conversationId) { this.conversationId = conversationId; }
-    public void setClientEmail(String clientEmail)       { this.clientEmail = clientEmail; }
-    public void setOperatorEmail(String operatorEmail)   { this.operatorEmail = operatorEmail; }
-    public void setAssumedAt(LocalDateTime assumedAt)    { this.assumedAt = assumedAt; }
-    public void setClosedAt(LocalDateTime closedAt)      { this.closedAt = closedAt; }
-    public void setStatus(SessionStatus status)          { this.status = status; }
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
+    }
+
+    public void setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
+    }
+
+    public void setOperatorEmail(String operatorEmail) {
+        this.operatorEmail = operatorEmail;
+    }
+
+    public void setAssumedAt(LocalDateTime assumedAt) {
+        this.assumedAt = assumedAt;
+    }
+
+    public void setClosedAt(LocalDateTime closedAt) {
+        this.closedAt = closedAt;
+    }
+
+    public void setStatus(SessionStatus status) {
+        this.status = status;
+    }
 }
