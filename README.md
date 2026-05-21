@@ -2,9 +2,6 @@
 
 API REST do projeto WTC Connecta, desenvolvido em Java com Spring Boot e MongoDB Atlas como banco de dados NoSQL.
 
-**Responsável:** Mayke Rocha · RM560523  
-**Instituição:** FIAP · 2026
-
 ---
 
 ## Tecnologias
